@@ -1,7 +1,9 @@
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, Clock, Target } from "lucide-react"
+import { Link } from "react-router-dom"
 
 export default function Challenges() {
   return (
@@ -41,7 +43,9 @@ export default function Challenges() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full">Continuar Desafio</Button>
+            <Link to="/desafios/ch1" className="w-full">
+              <Button className="w-full">Continuar Desafio</Button>
+            </Link>
           </CardFooter>
         </Card>
 
@@ -72,7 +76,9 @@ export default function Challenges() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full">Continuar Desafio</Button>
+            <Link to="/desafios/ch2" className="w-full">
+              <Button className="w-full">Continuar Desafio</Button>
+            </Link>
           </CardFooter>
         </Card>
 
@@ -103,7 +109,9 @@ export default function Challenges() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button className="w-full">Continuar Desafio</Button>
+            <Link to="/desafios/ch3" className="w-full">
+              <Button className="w-full">Continuar Desafio</Button>
+            </Link>
           </CardFooter>
         </Card>
       </div>

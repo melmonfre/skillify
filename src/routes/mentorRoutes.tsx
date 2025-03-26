@@ -10,6 +10,7 @@ import MentorDesafios from "@/pages/mentor/Desafios"
 import MentorTurmas from "@/pages/mentor/Turmas"
 import StudentProgress from "@/pages/mentor/StudentProgress"
 import MentorMessages from "@/pages/mentor/Messages"
+import NewChallenge from "@/pages/mentor/NewChallenge"
 
 export const MentorRoutes = () => {
   return (
@@ -23,6 +24,7 @@ export const MentorRoutes = () => {
       <Route path="simulados" element={<MentorSimulados />} />
       <Route path="mentoria" element={<MentorMentoria />} />
       <Route path="desafios" element={<MentorDesafios />} />
+      <Route path="desafios/novo" element={<NewChallenge />} />
       <Route path="mensagens" element={<MentorMessages />} />
       <Route path="progresso" element={<StudentProgress />} />
     </Routes>

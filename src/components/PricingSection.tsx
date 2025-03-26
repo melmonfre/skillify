@@ -1,8 +1,11 @@
+
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const tiers = [
   {
+    id: "basic",
     name: "Básico",
     price: "Grátis",
     description: "Perfeito para começar sua jornada de aprendizado",
@@ -14,6 +17,7 @@ const tiers = [
     ],
   },
   {
+    id: "pro",
     name: "Profissional",
     price: "R$ 49,90/mês",
     description: "Ideal para profissionais em busca de crescimento",
@@ -25,6 +29,7 @@ const tiers = [
     ],
   },
   {
+    id: "enterprise",
     name: "Corporativo",
     price: "Sob consulta",
     description: "Para empresas que desejam desenvolver suas equipes",
@@ -64,9 +69,11 @@ const PricingSection = () => {
                     {tier.price}
                   </span>
                 </p>
-                <Button className="mt-8 w-full bg-primary-600 hover:bg-primary-700">
-                  Começar agora
-                </Button>
+                <Link to={`/planos/${tier.id}`}>
+                  <Button className="mt-8 w-full bg-primary-600 hover:bg-primary-700">
+                    Começar agora
+                  </Button>
+                </Link>
               </div>
               <div className="px-6 pt-6 pb-8">
                 <h4 className="text-sm font-medium text-gray-900 tracking-wide">
