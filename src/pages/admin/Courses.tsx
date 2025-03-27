@@ -1,9 +1,8 @@
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, BookPlus, Edit, Trash2, StarIcon, GraduationCap, BookOpen, Clock } from "lucide-react"
+import { Search, BookPlus, Edit, Trash2, StarIcon, GraduationCap, BookOpen } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -16,6 +15,12 @@ import { Label } from "@/components/ui/label"
 import { useToast } from "@/hooks/use-toast"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -33,52 +38,147 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { Course } from "@/types"
+import { CourseAdminAPI } from "@/api/admin/controllers/CourseAdminAPI"
+import { CourseCategoryAdminAPI } from "@/api/admin/controllers/CourseCategoryAdminAPI"
+// Assuming these DTOs are adjustable; update them accordingly
+import { CourseResponseDTO } from "@/api/dtos/courseDtos"
+import { CourseCategoryResponseDTO } from "@/api/dtos/courseCategoryDtos"
+
+// Adjusted CourseCreateDTO to use string[] instead of Set<string>
+interface CourseCreateDTO {
+  name: string
+  description: string
+  imageUrl: string
+  categoryIds: string[] // Changed from Set<string> to string[]
+  level: string
+  duration: number
+  creatorId: string
+}
 
 const AdminCourses = () => {
   const { toast } = useToast()
+  const [courses, setCourses] = useState<CourseResponseDTO[]>([])
+  const [categories, setCategories] = useState<CourseCategoryResponseDTO[]>([])
   const [isNewCourseOpen, setIsNewCourseOpen] = useState(false)
   const [isEditCourseOpen, setIsEditCourseOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedCourse, setSelectedCourse] = useState<string | null>(null)
+  const [selectedCourse, setSelectedCourse] = useState<CourseResponseDTO | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [courseImage, setCourseImage] = useState("")
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const handleNewCourse = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchCourses()
+    fetchCategories()
+  }, [])
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true)
+      const response = await CourseAdminAPI.getAllCourses()
+      setCourses(response)
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao carregar cursos", variant: "destructive" })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchCategories = async () => {
+    try {
+      const response = await CourseCategoryAdminAPI.getAllCategories()
+      setCategories(response)
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao carregar categorias", variant: "destructive" })
+    }
+  }
+
+  const handleNewCourse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setIsNewCourseOpen(false)
-    toast({
-      title: "Curso criado",
-      description: "O novo curso foi criado com sucesso.",
-    })
+    const formData = new FormData(e.currentTarget)
+    
+    const newCourse: CourseCreateDTO = {
+      name: formData.get("title") as string,
+      description: formData.get("description") as string,
+      imageUrl: formData.get("imageUrl") as string || "",
+      categoryIds: selectedCategories, // Directly use the array
+      level: formData.get("level") as string,
+      duration: Number(formData.get("duration")),
+      creatorId: localStorage.getItem("userId")
+    }
+
+    try {
+      await CourseAdminAPI.createCourse(newCourse)
+      setIsNewCourseOpen(false)
+      setSelectedCategories([])
+      fetchCourses()
+      toast({ title: "Curso criado", description: "O novo curso foi criado com sucesso." })
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao criar curso", variant: "destructive" })
+    }
   }
 
-  const handleEditCourse = (e: React.FormEvent) => {
+  const handleEditCourse = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setIsEditCourseOpen(false)
-    toast({
-      title: "Curso atualizado",
-      description: "O curso foi atualizado com sucesso.",
-    })
+    if (!selectedCourse) return
+
+    const formData = new FormData(e.currentTarget)
+    const updatedCourse: CourseCreateDTO = {
+      name: formData.get("editTitle") as string,
+      description: formData.get("editDescription") as string,
+      imageUrl: formData.get("editImageUrl") as string || "",
+      categoryIds: selectedCategories, // Directly use the array
+      level: formData.get("editLevel") as string,
+      duration: Number(formData.get("editDuration")),
+      creatorId: selectedCourse.creator.id
+    }
+
+    try {
+      await CourseAdminAPI.updateCourse(selectedCourse.id, updatedCourse)
+      setIsEditCourseOpen(false)
+      setSelectedCategories([])
+      fetchCourses()
+      toast({ title: "Curso atualizado", description: "O curso foi atualizado com sucesso." })
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao atualizar curso", variant: "destructive" })
+    }
   }
 
-  const handleDeleteCourse = () => {
-    setIsDeleteDialogOpen(false)
-    toast({
-      title: "Curso removido",
-      description: "O curso foi removido com sucesso.",
-    })
+  const handleDeleteCourse = async () => {
+    if (!selectedCourse) return
+    try {
+      await CourseAdminAPI.deleteCourse(selectedCourse.id)
+      setIsDeleteDialogOpen(false)
+      fetchCourses()
+      toast({ title: "Curso removido", description: "O curso foi removido com sucesso." })
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao remover curso", variant: "destructive" })
+    }
   }
 
-  const openEditDialog = (courseTitle: string) => {
-    setSelectedCourse(courseTitle)
+  const openEditDialog = (course: CourseResponseDTO) => {
+    setSelectedCourse(course)
+    // Assuming course.categories is a Set; convert to array
+    setSelectedCategories(course.categories.size > 0 ? Array.from(course.categories).map(cat => cat.id) : [])
     setIsEditCourseOpen(true)
   }
 
-  const openDeleteDialog = (courseTitle: string) => {
-    setSelectedCourse(courseTitle)
+  const openDeleteDialog = (course: CourseResponseDTO) => {
+    setSelectedCourse(course)
     setIsDeleteDialogOpen(true)
   }
+
+  const toggleCategory = (categoryId: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId]
+    )
+  }
+
+  const filteredCourses = courses.filter(course =>
+    course.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
     <div className="container py-8 space-y-8">
@@ -86,7 +186,7 @@ const AdminCourses = () => {
         <div>
           <h1 className="text-4xl font-bold tracking-tight">
             Cursos
-            <span className="text-primary ml-2">3</span>
+            <span className="text-primary ml-2">{courses.length}</span>
           </h1>
           <p className="text-muted-foreground mt-2">
             Gerencie os cursos da plataforma
@@ -95,83 +195,99 @@ const AdminCourses = () => {
         <Button 
           onClick={() => setIsNewCourseOpen(true)}
           size="lg"
-          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
         >
           <BookPlus className="w-5 h-5 mr-2" />
           Novo Curso
         </Button>
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar cursos..." 
-            className="pl-10 py-6 text-lg" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input 
+          placeholder="Buscar cursos..." 
+          className="pl-10 py-6 text-lg" 
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card to-primary/5">
-          <CardHeader className="pb-0">
-            <div className="flex justify-between items-start mb-4">
-              <Badge variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20">
-                Programação
-              </Badge>
-              <div className="flex items-center gap-1 text-yellow-500">
-                <StarIcon className="w-4 h-4 fill-current" />
-                <span className="text-sm font-medium">4.7</span>
-              </div>
-            </div>
-            <CardTitle className="text-xl mb-2">React Fundamentals</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <GraduationCap className="w-4 h-4" />
-                    <span className="text-sm">Alunos</span>
-                  </div>
-                  <p className="text-2xl font-semibold">156</p>
+        {loading ? (
+          <p>Carregando cursos...</p>
+        ) : filteredCourses.map(course => (
+          <Card key={course.id} className="group hover:shadow-xl transition-all duration-300">
+            <CardHeader className="pb-0">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex flex-wrap gap-2">
+                  {course.categories.size > 0 ? (
+                    Array.from(course.categories).map(cat => (
+                      <Badge key={cat.id} variant="outline" className="bg-primary/10 text-primary">
+                        {cat.categoryName}
+                      </Badge>
+                    ))
+                  ) : (
+                    <Badge variant="outline" className="bg-primary/10 text-primary">
+                      Sem categoria
+                    </Badge>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <BookOpen className="w-4 h-4" />
-                    <span className="text-sm">Aulas</span>
-                  </div>
-                  <p className="text-2xl font-semibold">24</p>
+                <div className="flex items-center gap-1 text-yellow-500">
+                  <StarIcon className="w-4 h-4 fill-current" />
+                  <span className="text-sm font-medium">4.7</span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3 pt-4">
-                <Button 
-                  variant="outline" 
-                  className="flex-1 border-primary/20 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 py-6"
-                  onClick={() => openEditDialog("React Fundamentals")}
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Editar
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  className="flex-1 py-6 hover:bg-red-700 transition-all duration-300"
-                  onClick={() => openDeleteDialog("React Fundamentals")}
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remover
-                </Button>
+              <CardTitle className="text-xl mb-2">{course.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <GraduationCap className="w-4 h-4" />
+                      <span className="text-sm">Criador</span>
+                    </div>
+                    <p className="text-sm font-semibold">{course.creator.name || course.creator.id}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <BookOpen className="w-4 h-4" />
+                      <span className="text-sm">Duração</span>
+                    </div>
+                    <p className="text-2xl font-semibold">{course.duration}h</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 pt-4">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => openEditDialog(course)}
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Editar
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    className="flex-1"
+                    onClick={() => openDeleteDialog(course)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remover
+                  </Button>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Modal Novo Curso */}
-      <Dialog open={isNewCourseOpen} onOpenChange={setIsNewCourseOpen}>
+      {/* New Course Dialog */}
+      <Dialog open={isNewCourseOpen} onOpenChange={(open) => {
+        setIsNewCourseOpen(open)
+        if (!open) {
+          setSelectedCategories([])
+        }
+      }}>
         <DialogContent className="sm:max-w-[625px]">
           <DialogHeader>
             <DialogTitle>Criar Novo Curso</DialogTitle>
@@ -182,50 +298,54 @@ const AdminCourses = () => {
           <form onSubmit={handleNewCourse} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="title">Título do curso</Label>
-              <Input id="title" required />
+              <Input id="title" name="title" required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Descrição</Label>
-              <Textarea id="description" required className="min-h-[100px]" />
+              <Textarea id="description" name="description" required className="min-h-[100px]" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="image">Imagem do curso</Label>
-              <div className="grid gap-4">
-                <Input
-                  id="image"
-                  placeholder="URL da imagem (ex: https://...)"
-                  value={courseImage}
-                  onChange={(e) => setCourseImage(e.target.value)}
-                />
-                {courseImage && (
-                  <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
-                    <img
-                      src={courseImage}
-                      alt="Preview"
-                      className="object-cover w-full h-full"
-                      onError={() => setCourseImage("")}
-                    />
-                  </div>
-                )}
-              </div>
+              <Label htmlFor="imageUrl">Imagem do curso</Label>
+              <Input
+                id="imageUrl"
+                name="imageUrl"
+                placeholder="URL da imagem"
+                required={false}
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="category">Categoria</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="programming">Programação</SelectItem>
-                    <SelectItem value="design">Design</SelectItem>
-                    <SelectItem value="business">Negócios</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label>Categorias</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-full justify-between">
+                      {selectedCategories.length > 0
+                        ? `${selectedCategories.length} selecionada(s)`
+                        : "Selecione categorias"}
+                      <span>▼</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full">
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {categories.map(cat => (
+                        <div key={cat.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`cat-${cat.id}`}
+                            checked={selectedCategories.includes(cat.id)}
+                            onCheckedChange={() => toggleCategory(cat.id)}
+                          />
+                          <label htmlFor={`cat-${cat.id}`} className="text-sm">
+                            {cat.categoryName}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="level">Nível</Label>
-                <Select>
+                <Select name="level">
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o nível" />
                   </SelectTrigger>
@@ -237,21 +357,12 @@ const AdminCourses = () => {
                 </Select>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="duration">Duração (em horas)</Label>
-                <Input id="duration" type="number" min="1" required />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lessons">Número de aulas</Label>
-                <Input id="lessons" type="number" min="1" required />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="duration">Duração (em horas)</Label>
+              <Input id="duration" name="duration" type="number" min="1" required />
             </div>
             <DialogFooter>
-              <Button 
-                type="submit"
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-              >
+              <Button type="submit" className="bg-gradient-to-r from-purple-600 to-indigo-600">
                 Criar Curso
               </Button>
             </DialogFooter>
@@ -259,114 +370,124 @@ const AdminCourses = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Editar Curso */}
-      <Dialog open={isEditCourseOpen} onOpenChange={setIsEditCourseOpen}>
+      {/* Edit Course Dialog */}
+      <Dialog open={isEditCourseOpen} onOpenChange={(open) => {
+        setIsEditCourseOpen(open)
+        if (!open) {
+          setSelectedCategories([])
+        }
+      }}>
         <DialogContent className="sm:max-w-[625px]">
           <DialogHeader>
             <DialogTitle>Editar Curso</DialogTitle>
             <DialogDescription>
-              Edite as informações do curso {selectedCourse}.
+              Edite as informações do curso {selectedCourse?.name}.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleEditCourse} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="editTitle">Título do curso</Label>
-              <Input id="editTitle" defaultValue={selectedCourse || ""} required />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="editDescription">Descrição</Label>
-              <Textarea 
-                id="editDescription" 
-                required 
-                className="min-h-[100px]"
-                defaultValue="Aprenda os fundamentos do React, desde componentes até hooks."
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="editImage">Imagem do curso</Label>
-              <div className="grid gap-4">
-                <Input
-                  id="editImage"
-                  placeholder="URL da imagem (ex: https://...)"
-                  value={courseImage}
-                  onChange={(e) => setCourseImage(e.target.value)}
+          {selectedCourse && (
+            <form onSubmit={handleEditCourse} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="editTitle">Título do curso</Label>
+                <Input id="editTitle" name="editTitle" defaultValue={selectedCourse.name} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editDescription">Descrição</Label>
+                <Textarea 
+                  id="editDescription" 
+                  name="editDescription"
+                  defaultValue={selectedCourse.description}
+                  required 
+                  className="min-h-[100px]"
                 />
-                {courseImage && (
-                  <div className="relative aspect-video rounded-lg overflow-hidden bg-muted">
-                    <img
-                      src={courseImage}
-                      alt="Preview"
-                      className="object-cover w-full h-full"
-                      onError={() => setCourseImage("")}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="editCategory">Categoria</Label>
-                <Select defaultValue="programming">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="programming">Programação</SelectItem>
-                    <SelectItem value="design">Design</SelectItem>
-                    <SelectItem value="business">Negócios</SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editLevel">Nível</Label>
-                <Select defaultValue="beginner">
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o nível" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">Iniciante</SelectItem>
-                    <SelectItem value="intermediate">Intermediário</SelectItem>
-                    <SelectItem value="advanced">Avançado</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="editImageUrl">Imagem do curso</Label>
+                <Input
+                  id="editImageUrl"
+                  name="editImageUrl"
+                  placeholder="URL da imagem"
+                  defaultValue={selectedCourse.imageUrl}
+                />
               </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Categorias</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        {selectedCategories.length > 0
+                          ? `${selectedCategories.length} selecionada(s)`
+                          : "Selecione categorias"}
+                        <span>▼</span>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full">
+                      <div className="space-y-2 max-h-60 overflow-y-auto">
+                        {categories.map(cat => (
+                          <div key={cat.id} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`edit-cat-${cat.id}`}
+                              checked={selectedCategories.includes(cat.id)}
+                              onCheckedChange={() => toggleCategory(cat.id)}
+                            />
+                            <label htmlFor={`edit-cat-${cat.id}`} className="text-sm">
+                              {cat.categoryName}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="editLevel">Nível</Label>
+                  <Select name="editLevel" defaultValue={selectedCourse.level}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o nível" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Iniciante</SelectItem>
+                      <SelectItem value="intermediate">Intermediário</SelectItem>
+                      <SelectItem value="advanced">Avançado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="editDuration">Duração (em horas)</Label>
-                <Input id="editDuration" type="number" min="1" defaultValue="8" required />
+                <Input 
+                  id="editDuration" 
+                  name="editDuration" 
+                  type="number" 
+                  min="1" 
+                  defaultValue={selectedCourse.duration} 
+                  required 
+                />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="editLessons">Número de aulas</Label>
-                <Input id="editLessons" type="number" min="1" defaultValue="24" required />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button 
-                type="submit"
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5"
-              >
-                Salvar Alterações
-              </Button>
-            </DialogFooter>
-          </form>
+              <DialogFooter>
+                <Button type="submit" className="bg-gradient-to-r from-purple-600 to-indigo-600">
+                  Salvar Alterações
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Confirmação de Remoção */}
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover Curso</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover o curso {selectedCourse}? Esta ação não pode ser desfeita.
+              Tem certeza que deseja remover o curso {selectedCourse?.name}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteCourse}
-              className="bg-red-600 hover:bg-red-700 text-white transition-colors"
+              className="bg-red-600 hover:bg-red-700"
             >
               Remover
             </AlertDialogAction>

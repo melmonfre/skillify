@@ -46,6 +46,7 @@ export default function Login() {
       localStorage.setItem('userRole', response.userRole);
       console.log("Token:", localStorage.getItem("token"));
       console.log("Role:", localStorage.getItem("userRole"));
+      localStorage.setItem("userId", response.userId);
 
       switch (response.userRole.toUpperCase()) {
         case "ADMIN":

@@ -3,7 +3,7 @@ import { CourseCategoryResponseDTO } from './courseCategoryDtos';
 import { UserResponseDTO } from './userDtos';
 
 export interface CourseCreateDTO {
-  categoryIds: Set<string>;
+  categoryIds: string[];
   level: string;
   name: string;
   description: string;

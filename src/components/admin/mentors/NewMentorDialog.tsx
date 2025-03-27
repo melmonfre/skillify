@@ -1,4 +1,4 @@
-
+// NewMentorDialog.tsx
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,14 +10,35 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { RegisterRequest } from "@/api/dtos/authDtos"
+import { UserRole } from "@/api/dtos/userDtos"
 
 interface NewMentorDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (e: React.FormEvent) => void
+  onSubmit: (data: RegisterRequest) => void
 }
 
 const NewMentorDialog = ({ open, onOpenChange, onSubmit }: NewMentorDialogProps) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const formData = new FormData(e.currentTarget)
+    const mentorData: RegisterRequest = {
+      name: formData.get('name') as string,
+      email: formData.get('email') as string,
+      password: formData.get('password') as string,
+      tel: formData.get('tel') as string || undefined,
+      biography: formData.get('biography') as string || undefined,
+      emailNotifications: formData.get('emailNotifications') === 'on',
+      pushNotifications: formData.get('pushNotifications') === 'on',
+      weeklyReport: formData.get('weeklyReport') === 'on',
+      studyReminder: formData.get('studyReminder') === 'on',
+      role: UserRole.MENTOR,
+      classId: undefined, // Optional field, not included in form for now
+    }
+    onSubmit(mentorData)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -27,19 +48,32 @@ const NewMentorDialog = ({ open, onOpenChange, onSubmit }: NewMentorDialogProps)
             Preencha os dados do novo mentor abaixo.
           </DialogDescription>
         </DialogHeader>
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Nome completo</Label>
-            <Input id="name" required />
+            <Input id="name" name="name" required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" required />
+            <Input id="email" name="email" type="email" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input id="password" name="password" type="password" required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="tel">Telefone</Label>
+            <Input id="tel" name="tel" type="tel" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="biography">Biografia</Label>
+            <Input id="biography" name="biography" />
           </div>
           <div className="space-y-2">
             <Label htmlFor="specialty">Especialidade</Label>
-            <Input id="specialty" required />
+            <Input id="specialty" name="specialty" required />
           </div>
+          {/* Optional notification settings could be added as checkboxes if desired */}
           <DialogFooter>
             <Button 
               type="submit" 
