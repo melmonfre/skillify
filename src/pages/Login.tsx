@@ -47,13 +47,6 @@ export default function Login() {
       console.log("Token:", localStorage.getItem("token"));
       console.log("Role:", localStorage.getItem("userRole"));
 
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Redirecionando para o dashboard...",
-        variant: "default", // Explicitly set to ensure visibility
-        duration: 3000,
-      });
-
       switch (response.userRole.toUpperCase()) {
         case "ADMIN":
           navigate("/admin/dashboard");

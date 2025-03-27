@@ -35,4 +35,14 @@ export class AuthenticationAPI {
       throw error;
     }
   }
+
+  static async validateToken(token: string): Promise<boolean> {
+    try {
+      const response = await api.post<boolean>(`/api/auth/validateToken/${encodeURIComponent(token)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Token validation error:', error);
+      throw error;
+    }
+  }
 }

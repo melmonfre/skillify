@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { RegisterRequest } from "@/api/dtos/authDtos"
 import { AuthenticationAPI } from "@/api/AuthenticationAPI"
+import { useEffect, useState } from "react"
 
 const formSchema = z.object({
   name: z.string().min(3, "O nome deve ter no mínimo 3 caracteres"),
@@ -26,11 +27,15 @@ const formSchema = z.object({
   path: ["confirmPassword"],
 })
 
+const tokenSchema = z.object({
+  token: z.string().min(1, "O token é obrigatório"),
+})
+
 export default function Register() {
   const { toast } = useToast()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const classId = searchParams.get('classId')
+  const [classId, setClassId] = useState(searchParams.get('classId') || '')
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -42,31 +47,58 @@ export default function Register() {
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!classId) {
-      toast({
-        title: "Erro no cadastro",
-        description: "É necessário um ID de turma válido para realizar o cadastro.",
-        variant: "destructive",
-      })
-      return
+  const tokenForm = useForm<z.infer<typeof tokenSchema>>({
+    resolver: zodResolver(tokenSchema),
+    defaultValues: {
+      token: "",
+    },
+  })
+
+  useEffect(() => {
+    if (classId) {
+      const validateClassId = async () => {
+        try {
+          const isValid = await AuthenticationAPI.validateToken(classId)
+          if (!isValid) {
+            toast({
+              title: "Token inválido",
+              description: "O token fornecido na URL é inválido. Insira um token válido.",
+              variant: "destructive",
+            })
+            setClassId('')
+            navigate("/register")
+          }
+        } catch (error) {
+          toast({
+            title: "Erro na validação",
+            description: "Não foi possível validar o token. Tente novamente.",
+            variant: "destructive",
+          })
+          setClassId('')
+          navigate("/register")
+        }
+      }
+      validateClassId()
     }
+  }, [classId, navigate, toast])
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!classId) return
 
     try {
       const registerRequest: RegisterRequest = {
         name: values.name,
         email: values.email,
         password: values.password,
-        tel: "", // Default or make optional in the DTO
-        biography: "", // Default or make optional
-        emailNotifications: false, // Default value
-        pushNotifications: false, // Default value
-        weeklyReport: false, // Default value
-        studyReminder: false, // Default value
-        role: "ESTUDANTE" // Default role, configurable if needed
+        tel: "",
+        biography: "",
+        emailNotifications: false,
+        pushNotifications: false,
+        weeklyReport: false,
+        studyReminder: false,
+        role: "ESTUDANTE"
       }
 
-      // Use registerWithClassroom instead of register
       const response = await AuthenticationAPI.registerWithClassroom(registerRequest, classId)
       localStorage.setItem('token', response.token)
 
@@ -78,7 +110,32 @@ export default function Register() {
     } catch (error) {
       toast({
         title: "Erro no cadastro",
-        description: "Não foi possível realizar o cadastro ou entrar na turma. Verifique seus dados e o link de convite.",
+        description: "Não foi possível realizar o cadastro ou entrar na turma. Verifique seus dados.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  async function onTokenSubmit(values: z.infer<typeof tokenSchema>) {
+    try {
+      const isValid = await AuthenticationAPI.validateToken(values.token)
+      if (isValid) {
+        setClassId(values.token)
+        toast({
+          title: "Token válido",
+          description: "Token verificado com sucesso. Preencha os dados de cadastro.",
+        })
+      } else {
+        toast({
+          title: "Token inválido",
+          description: "O token inserido não é válido. Verifique e tente novamente.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Erro na validação",
+        description: "Não foi possível validar o token. Tente novamente.",
         variant: "destructive",
       })
     }
@@ -88,18 +145,36 @@ export default function Register() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-purple-900 py-12 px-4 sm:px-6 lg:px-8 flex items-center justify-center">
         <div className="bg-white/5 backdrop-blur-lg rounded-xl border border-white/10 p-8 max-w-md w-full">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-white mb-4">Link Inválido</h1>
-            <p className="text-slate-300 mb-6">
-              É necessário um link de convite válido com ID da turma para realizar o cadastro.
-            </p>
-            <Button
-              onClick={() => navigate("/")}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              Voltar para a Home
-            </Button>
-          </div>
+          <Form {...tokenForm}>
+            <form onSubmit={tokenForm.handleSubmit(onTokenSubmit)} className="space-y-6">
+              <FormField
+                control={tokenForm.control}
+                name="token"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white text-center block">
+                      Insira o token fornecido pelo mentor:
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="Token da turma" 
+                        {...field}
+                        className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button 
+                type="submit" 
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                disabled={tokenForm.formState.isSubmitting}
+              >
+                {tokenForm.formState.isSubmitting ? "Validando..." : "Continuar"}
+              </Button>
+            </form>
+          </Form>
         </div>
       </div>
     )

@@ -9,8 +9,10 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  if (localStorage.getItem("token")) {
-    config.headers.Authorization = `Bearer ${localStorage.getItem("token")}`;
+  const token = localStorage.getItem('token');
+  // Skip adding Authorization for validateToken endpoint
+  if (token && !config.url?.includes('/api/auth/validateToken')) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
