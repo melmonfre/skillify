@@ -1,5 +1,4 @@
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +18,9 @@ import {
 } from "@/components/ui/card"
 import { BookOpen, Clock, Filter, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { CourseStudentAPI } from "@/api/student/controllers/CourseStudentAPI"
+import { CourseResponseDTO } from "@/api/dtos/courseDtos"
+import { useToast } from "@/hooks/use-toast"
 
 const levelLabels = {
   beginner: "Iniciante",
@@ -29,62 +31,83 @@ const levelLabels = {
 const categories = ["Todos", "Frontend", "Backend", "Programação", "DevOps", "Mobile"]
 const levels = ["Todos", "beginner", "intermediate", "advanced"]
 
-const mockCourses = [
-  {
-    id: "1",
-    title: "Fundamentos do React",
-    description: "Domine os fundamentos do React com projetos práticos",
-    thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee",
-    duration: "8 horas",
-    level: "beginner" as const,
-    category: "Frontend",
-    enrolled: true,
-    progress: 65,
-    totalLessons: 10,
-    completedLessons: 6,
-  },
-  {
-    id: "2",
-    title: "TypeScript Avançado",
-    description: "Aprenda recursos avançados e boas práticas de TypeScript",
-    thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085",
-    duration: "12 horas",
-    level: "advanced" as const,
-    category: "Programação",
-    enrolled: true,
-    progress: 30,
-    totalLessons: 15,
-    completedLessons: 5,
-  },
-  {
-    id: "3",
-    title: "Desenvolvimento Backend com Node.js",
-    description: "Construa aplicações escaláveis com Node.js",
-    thumbnail: "https://images.unsplash.com/photo-1627398242454-45a1465c2479",
-    duration: "15 horas",
-    level: "intermediate" as const,
-    category: "Backend",
-    enrolled: false,
-    progress: 0,
-    totalLessons: 20,
-    completedLessons: 0,
-  },
-] as const
-
 const Courses = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("Todos")
   const [selectedLevel, setSelectedLevel] = useState("Todos")
+  const [allCourses, setAllCourses] = useState<CourseResponseDTO[]>([])
+  const [enrolledCourses, setEnrolledCourses] = useState<CourseResponseDTO[]>([])
+  const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
 
-  const filteredCourses = mockCourses.filter((course) => {
-    const matchesSearch = course.title
+  useEffect(() => {
+    async function fetchCourses() {
+      try {
+        setLoading(true)
+        const [all, enrolled] = await Promise.all([
+          CourseStudentAPI.getAllCourses(),
+          CourseStudentAPI.getEnrolledCourses()
+        ])
+        
+        setAllCourses(all)
+        setEnrolledCourses(enrolled)
+      } catch (error) {
+        toast({
+          title: "Erro ao carregar cursos",
+          description: "Não foi possível carregar os cursos. Tente novamente mais tarde.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchCourses()
+  }, [toast])
+
+  const filteredCourses = allCourses.filter((course) => {
+    const matchesSearch = course.name
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
     const matchesCategory =
-      selectedCategory === "Todos" || course.category === selectedCategory
-    const matchesLevel = selectedLevel === "Todos" || course.level === selectedLevel
+      selectedCategory === "Todos" || 
+      Array.from(course.categories).some(cat => cat.categoryName === selectedCategory)
+    const matchesLevel = 
+      selectedLevel === "Todos" || course.level === selectedLevel
     return matchesSearch && matchesCategory && matchesLevel
   })
+
+  const handleEnroll = async (courseId: string) => {
+    try {
+      await CourseStudentAPI.enrollInCourse(courseId)
+      const course = allCourses.find(c => c.id === courseId)
+      if (course) {
+        setEnrolledCourses([...enrolledCourses, course])
+      }
+      toast({
+        title: "Inscrição realizada",
+        description: "Você se inscreveu no curso com sucesso!",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro na inscrição",
+        description: "Não foi possível se inscrever no curso.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const isEnrolled = (courseId: string) => {
+    return enrolledCourses.some(course => course.id === courseId)
+  }
+
+  if (loading) {
+    return (
+      <div className="container py-8">
+        <p className="text-center">Carregando cursos...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="container py-8 space-y-8 animate-fadeIn">
@@ -141,8 +164,8 @@ const Courses = () => {
         {filteredCourses.map((course) => (
           <Card key={course.id} className="flex flex-col overflow-hidden">
             <img
-              src={course.thumbnail}
-              alt={course.title}
+              src={course.imageUrl}
+              alt={course.name}
               className="h-48 w-full object-cover"
             />
             <CardHeader>
@@ -156,39 +179,40 @@ const Courses = () => {
                       : "destructive"
                   }
                 >
-                  {levelLabels[course.level]}
+                  {levelLabels[course.level as keyof typeof levelLabels]}
                 </Badge>
                 <div className="flex items-center text-sm text-muted-foreground">
                   <Clock className="mr-1 h-4 w-4" />
-                  {course.duration}
+                  {course.duration} horas
                 </div>
               </div>
-              <CardTitle className="line-clamp-1">{course.title}</CardTitle>
+              <CardTitle className="line-clamp-1">{course.name}</CardTitle>
               <CardDescription className="line-clamp-2">
                 {course.description}
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
-              {course.enrolled && (
+              {isEnrolled(course.id) && (
                 <div className="mb-4">
                   <div className="text-sm text-muted-foreground mb-2">
-                    Progresso: {course.progress}%
-                  </div>
-                  <div className="h-2 bg-secondary/20 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${course.progress}%` }}
-                    />
+                    Criado por: {course.creator.name}
                   </div>
                 </div>
               )}
             </CardContent>
             <CardFooter className="mt-auto">
-              <Button className="w-full" asChild>
-                <a href={`/cursos/${course.id}`}>
-                  {course.enrolled ? "Continuar" : "Começar Agora"}
-                </a>
-              </Button>
+              {isEnrolled(course.id) ? (
+                <Button className="w-full" asChild>
+                  <a href={`/cursos/${course.id}`}>Continuar</a>
+                </Button>
+              ) : (
+                <Button 
+                  className="w-full" 
+                  onClick={() => handleEnroll(course.id)}
+                >
+                  Inscrever-se
+                </Button>
+              )}
             </CardFooter>
           </Card>
         ))}

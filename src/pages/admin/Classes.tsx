@@ -1,5 +1,4 @@
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Search, GraduationCap } from "lucide-react"
@@ -9,33 +8,9 @@ import { NewClassDialog } from "@/components/admin/classes/NewClassDialog"
 import { EditClassDialog } from "@/components/admin/classes/EditClassDialog"
 import { DeleteClassDialog } from "@/components/admin/classes/DeleteClassDialog"
 import { RegistrationLinkDialog } from "@/components/admin/classes/RegistrationLinkDialog"
-
-const mockClasses = [
-  {
-    name: "Turma A - React Avançado",
-    mentor: "João Silva",
-    status: "Em andamento",
-    students: 24,
-    startDate: "15/03/2024",
-    progress: 65,
-  },
-  {
-    name: "Turma B - Node.js",
-    mentor: "Maria Santos",
-    status: "Iniciando",
-    students: 18,
-    startDate: "01/04/2024",
-    progress: 0,
-  },
-  {
-    name: "Turma C - TypeScript",
-    mentor: "Pedro Oliveira",
-    status: "Em andamento",
-    students: 32,
-    startDate: "10/02/2024",
-    progress: 85,
-  },
-]
+import { ClassroomAdminAPI } from "@/api/admin/controllers/ClassroomAdminAPI"
+import { ClassroomCreateDTO, ClassroomResponseDTO } from "@/api/dtos/classroomDtos"
+import { ClassroomAccessTokenAdminAPI } from "@/api/admin/controllers/ClassroomAccessTokenAdminAPI"
 
 const AdminClasses = () => {
   const { toast } = useToast()
@@ -44,39 +19,113 @@ const AdminClasses = () => {
   const [isEditClassOpen, setIsEditClassOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false)
-  const [selectedClass, setSelectedClass] = useState<string | null>(null)
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [registrationLink, setRegistrationLink] = useState("")
+  const [classes, setClasses] = useState<ClassroomResponseDTO[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const handleNewClass = (e: React.FormEvent) => {
+  useEffect(() => {
+    async function fetchClasses() {
+      try {
+        setLoading(true)
+        const classrooms = await ClassroomAdminAPI.getAllClassrooms()
+        setClasses(classrooms)
+      } catch (error) {
+        toast({
+          title: "Erro ao carregar turmas",
+          description: "Não foi possível carregar as turmas. Tente novamente mais tarde.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchClasses()
+  }, [toast])
+
+  const handleNewClass = async (e: React.FormEvent, values: { name: string; mentorId: string }) => {
     e.preventDefault()
-    setIsNewClassOpen(false)
-    toast({
-      title: "Turma criada",
-      description: "A nova turma foi criada com sucesso.",
-    })
+    try {
+      const newClass: ClassroomCreateDTO = {
+        name: values.name,
+        mentorId: values.mentorId,
+        studentIds: new Set(),
+      }
+      const createdClass = await ClassroomAdminAPI.createClassroom(newClass)
+      setClasses([...classes, createdClass])
+      setIsNewClassOpen(false)
+      toast({
+        title: "Turma criada",
+        description: "A nova turma foi criada com sucesso.",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao criar turma",
+        description: "Não foi possível criar a turma.",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleEditClass = (e: React.FormEvent) => {
+  const handleEditClass = async (e: React.FormEvent, values: { name: string; mentorId: string }) => {
     e.preventDefault()
-    setIsEditClassOpen(false)
-    toast({
-      title: "Turma atualizada",
-      description: "A turma foi atualizada com sucesso.",
-    })
+    if (!selectedClassId) return
+    try {
+      const updatedClassData: ClassroomCreateDTO = {
+        name: values.name,
+        mentorId: values.mentorId,
+        studentIds: new Set(),
+      }
+      const updatedClass = await ClassroomAdminAPI.updateClassroom(selectedClassId, updatedClassData)
+      setClasses(classes.map(c => c.id === selectedClassId ? updatedClass : c))
+      setIsEditClassOpen(false)
+      toast({
+        title: "Turma atualizada",
+        description: "A turma foi atualizada com sucesso.",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar turma",
+        description: "Não foi possível atualizar a turma.",
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleDeleteClass = () => {
-    setIsDeleteDialogOpen(false)
-    toast({
-      title: "Turma removida",
-      description: "A turma foi removida com sucesso.",
-    })
+  const handleDeleteClass = async () => {
+    if (!selectedClassId) return
+    try {
+      await ClassroomAdminAPI.deleteClassroom(selectedClassId)
+      setClasses(classes.filter(c => c.id !== selectedClassId))
+      setIsDeleteDialogOpen(false)
+      toast({
+        title: "Turma removida",
+        description: "A turma foi removida com sucesso.",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao remover turma",
+        description: "Não foi possível remover a turma.",
+        variant: "destructive",
+      })
+    }
   }
 
-  const generateLink = (className: string) => {
-    setSelectedClass(className)
-    setRegistrationLink(`https://plataforma.exemplo.com/register?class=${encodeURIComponent(className)}`)
-    setIsLinkDialogOpen(true)
+  const generateLink = async (classId: string) => {
+    try {
+      const generatedToken = await ClassroomAccessTokenAdminAPI.generateToken(classId)
+      const className = classes.find(c => c.id === classId)?.name || ""
+      setSelectedClassId(classId)
+      setRegistrationLink(`${window.location.origin}/registro?classId=${generatedToken.token}`)
+      setIsLinkDialogOpen(true)
+    } catch (error) {
+      toast({
+        title: "Erro ao gerar link",
+        description: "Não foi possível gerar o link de registro.",
+        variant: "destructive",
+      })
+    }
   }
 
   const copyLink = () => {
@@ -87,19 +136,32 @@ const AdminClasses = () => {
     })
   }
 
+  const filteredClasses = classes.filter(classItem =>
+    classItem.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    classItem.mentor.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (loading) {
+    return (
+      <div className="container py-8">
+        <p className="text-center">Carregando turmas...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="container py-8 space-y-8 animate-fadeIn">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-4xl font-bold tracking-tight">
             Turmas
-            <span className="text-primary ml-2">{mockClasses.length}</span>
+            <span className="text-primary ml-2">{classes.length}</span>
           </h1>
           <p className="text-muted-foreground mt-2">
             Gerencie as turmas e seus mentores
           </p>
         </div>
-        <Button 
+        <Button
           onClick={() => setIsNewClassOpen(true)}
           size="lg"
           className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
@@ -112,8 +174,8 @@ const AdminClasses = () => {
       <div className="flex gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar turmas por nome, mentor ou curso..." 
+          <Input
+            placeholder="Buscar turmas por nome ou mentor..."
             className="pl-10 py-6 text-lg"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -122,17 +184,19 @@ const AdminClasses = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {mockClasses.map((classItem) => (
+        {filteredClasses.map((classItem) => (
           <ClassCard
-            key={classItem.name}
-            {...classItem}
-            onGenerateLink={generateLink}
-            onEdit={(name) => {
-              setSelectedClass(name)
+            key={classItem.id}
+            name={classItem.name}
+            mentor={classItem.mentor.name}
+            students={classItem.students.size}
+            onGenerateLink={() => generateLink(classItem.id)}
+            onEdit={() => {
+              setSelectedClassId(classItem.id)
               setIsEditClassOpen(true)
             }}
-            onDelete={(name) => {
-              setSelectedClass(name)
+            onDelete={() => {
+              setSelectedClassId(classItem.id)
               setIsDeleteDialogOpen(true)
             }}
           />
@@ -149,21 +213,21 @@ const AdminClasses = () => {
         open={isEditClassOpen}
         onOpenChange={setIsEditClassOpen}
         onSubmit={handleEditClass}
-        selectedClass={selectedClass}
+        selectedClass={selectedClassId ? classes.find(c => c.id === selectedClassId)?.name || null : null}
       />
 
       <DeleteClassDialog
         open={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         onConfirm={handleDeleteClass}
-        selectedClass={selectedClass}
+        selectedClass={selectedClassId ? classes.find(c => c.id === selectedClassId)?.name || null : null}
       />
 
       <RegistrationLinkDialog
         open={isLinkDialogOpen}
         onOpenChange={setIsLinkDialogOpen}
         onCopyLink={copyLink}
-        selectedClass={selectedClass}
+        selectedClass={selectedClassId ? classes.find(c => c.id === selectedClassId)?.name || null : null}
         registrationLink={registrationLink}
       />
     </div>

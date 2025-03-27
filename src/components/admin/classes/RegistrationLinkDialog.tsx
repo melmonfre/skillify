@@ -17,13 +17,13 @@ interface RegistrationLinkDialogProps {
   registrationLink: string
 }
 
-export function RegistrationLinkDialog({ 
-  open, 
-  onOpenChange, 
-  onCopyLink, 
-  selectedClass, 
-  registrationLink 
-}: RegistrationLinkDialogProps) {
+export const RegistrationLinkDialog = ({
+  open,
+  onOpenChange,
+  onCopyLink,
+  selectedClass,
+  registrationLink,
+}: RegistrationLinkDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -37,7 +37,7 @@ export function RegistrationLinkDialog({
           <div className="p-4 bg-muted rounded-lg break-all">
             {registrationLink}
           </div>
-          <Button 
+          <Button
             onClick={onCopyLink}
             className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
           >

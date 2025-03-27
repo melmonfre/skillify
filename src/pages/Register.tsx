@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
@@ -6,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -15,6 +13,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { useNavigate, useSearchParams } from "react-router-dom"
+import { RegisterRequest } from "@/api/dtos/authDtos"
+import { AuthenticationAPI } from "@/api/AuthenticationAPI"
 
 const formSchema = z.object({
   name: z.string().min(3, "O nome deve ter no mínimo 3 caracteres"),
@@ -42,7 +42,7 @@ export default function Register() {
     },
   })
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!classId) {
       toast({
         title: "Erro no cadastro",
@@ -52,13 +52,36 @@ export default function Register() {
       return
     }
 
-    // TODO: Implement real registration
-    console.log({ ...values, classId })
-    toast({
-      title: "Cadastro realizado com sucesso!",
-      description: "Redirecionando para o login...",
-    })
-    navigate("/login")
+    try {
+      const registerRequest: RegisterRequest = {
+        name: values.name,
+        email: values.email,
+        password: values.password,
+        tel: "", // Default or make optional in the DTO
+        biography: "", // Default or make optional
+        emailNotifications: false, // Default value
+        pushNotifications: false, // Default value
+        weeklyReport: false, // Default value
+        studyReminder: false, // Default value
+        role: "ESTUDANTE" // Default role, configurable if needed
+      }
+
+      // Use registerWithClassroom instead of register
+      const response = await AuthenticationAPI.registerWithClassroom(registerRequest, classId)
+      localStorage.setItem('token', response.token)
+
+      toast({
+        title: "Cadastro realizado com sucesso!",
+        description: "Você foi cadastrado e adicionado à turma. Redirecionando para o login...",
+      })
+      navigate("/login")
+    } catch (error) {
+      toast({
+        title: "Erro no cadastro",
+        description: "Não foi possível realizar o cadastro ou entrar na turma. Verifique seus dados e o link de convite.",
+        variant: "destructive",
+      })
+    }
   }
 
   if (!classId) {
@@ -88,7 +111,7 @@ export default function Register() {
         <div className="mb-8 space-y-2 text-center">
           <h1 className="text-3xl font-bold text-white">Crie sua conta</h1>
           <p className="text-slate-300">
-            Preencha seus dados para começar
+            Preencha seus dados para entrar na turma
           </p>
         </div>
 
@@ -164,8 +187,12 @@ export default function Register() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full bg-purple-600 hover:bg-purple-700">
-              Cadastrar
+            <Button 
+              type="submit" 
+              className="w-full bg-purple-600 hover:bg-purple-700"
+              disabled={form.formState.isSubmitting}
+            >
+              {form.formState.isSubmitting ? "Cadastrando..." : "Cadastrar"}
             </Button>
           </form>
         </Form>

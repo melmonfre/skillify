@@ -2,7 +2,7 @@
 export enum UserRole {
     ADMIN = "ROLE_ADMIN",
     ESTUDANTE = "ROLE_ESTUDANTE",
-    MENTOR = "ROLE_MENTOR"
+    MENTOR = "MENTOR"
   }
   
   export interface UserResponseDTO {

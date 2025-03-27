@@ -1,4 +1,3 @@
-
 import { Route, Routes, Navigate } from "react-router-dom"
 import AdminDashboard from "@/pages/admin/Dashboard"
 import AdminMentors from "@/pages/admin/Mentors"

@@ -24,6 +24,16 @@ export class UserAdminAPI {
     }
   }
 
+  static async getAllMentors(): Promise<UserResponseDTO[]> {
+    try {
+      const response = await api.get<UserResponseDTO[]>('/api/admin/users/mentors');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching all mentors:', error);
+      throw error;
+    }
+  }
+
   static async createUser(user: RegisterRequest): Promise<UserResponseDTO> {
     try {
       const response = await api.post<UserResponseDTO>('/api/admin/users', user);
