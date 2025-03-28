@@ -1,5 +1,4 @@
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,28 +10,80 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI"
+import { ClassroomAccessTokenMentorAPI } from "@/api/mentor/controllers/ClassroomAccessTokenMentorAPI"
+import { ClassroomResponseDTO } from "@/api/dtos/classroomDtos"
+import { ClassroomAccessTokenResponseDTO } from "@/api/dtos/classroomAccessTokenDtos"
 
 const MentorTurmas = () => {
   const { toast } = useToast()
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false)
-  const [selectedClass, setSelectedClass] = useState<string | null>(null)
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
+  const [registrationLink, setRegistrationLink] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [classrooms, setClassrooms] = useState<ClassroomResponseDTO[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const handleGenerateLink = (className: string) => {
-    setSelectedClass(className)
-    setIsLinkDialogOpen(true)
+  useEffect(() => {
+    const fetchClassrooms = async () => {
+      try {
+        setLoading(true)
+        const classroomData = await ClassroomMentorAPI.getAllClassrooms()
+        setClassrooms(classroomData)
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Falha ao carregar as turmas",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchClassrooms()
+  }, [toast])
+
+  const filteredClassrooms = classrooms.filter(classroom =>
+    classroom.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const generateLink = async (classroomId: string) => {
+    try {
+      const generatedToken: ClassroomAccessTokenResponseDTO = await ClassroomAccessTokenMentorAPI.generateToken(classroomId)
+      const className = classrooms.find(c => c.id === classroomId)?.name || ""
+      setSelectedClassId(classroomId)
+      setRegistrationLink(`${window.location.origin}/registro?token=${generatedToken.token}`)
+      setIsLinkDialogOpen(true)
+    } catch (error) {
+      toast({
+        title: "Erro ao gerar link",
+        description: "Não foi possível gerar o link de registro.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(`https://plataforma.edu/cadastro/turma/${selectedClass}`)
-    toast({
-      title: "Link copiado!",
-      description: "O link de cadastro foi copiado para sua área de transferência.",
-    })
-    setIsLinkDialogOpen(false)
+    if (registrationLink) {
+      navigator.clipboard.writeText(registrationLink)
+      toast({
+        title: "Link copiado!",
+        description: "O link de cadastro foi copiado para sua área de transferência.",
+      })
+      setIsLinkDialogOpen(false)
+    }
+  }
+
+  const getStatus = (startDate: string) => {
+    const today = new Date()
+    const classroomStart = new Date(startDate)
+    return today >= classroomStart ? "Em andamento" : "Planejada"
+  }
+
+  if (loading) {
+    return <div className="container py-8">Carregando turmas...</div>
   }
 
   return (
@@ -61,69 +112,49 @@ const MentorTurmas = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card to-primary/5">
-          <CardHeader>
-            <div className="flex justify-between items-start mb-4">
-              <Badge variant="outline" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
-                Em andamento
-              </Badge>
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">32 alunos</span>
+        {filteredClassrooms.map((classroom) => (
+          <Card 
+            key={classroom.id}
+            className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card to-primary/5"
+          >
+            <CardHeader>
+              <div className="flex justify-between items-start mb-4">
+                <Badge 
+                  variant="outline" 
+                  className={getStatus("2024-03-15") === "Em andamento" 
+                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"}
+                >
+                  {getStatus("2024-03-15")}
+                </Badge>
+                <div className="flex items-center gap-1">
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">
+                    {classroom.students.size} alunos
+                  </span>
+                </div>
               </div>
-            </div>
-            <CardTitle className="text-xl mb-4">Turma A - TypeScript Avançado</CardTitle>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>Início: 15/03/2024</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-              <GraduationCap className="w-4 h-4" />
-              <span>12 aulas planejadas</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => handleGenerateLink("typescript-a")}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-            >
-              <LinkIcon className="w-4 h-4 mr-2" />
-              Gerar Link de Cadastro
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card to-primary/5">
-          <CardHeader>
-            <div className="flex justify-between items-start mb-4">
-              <Badge variant="outline" className="bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-                Planejada
-              </Badge>
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">0 alunos</span>
+              <CardTitle className="text-xl mb-4">{classroom.name}</CardTitle>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span>Início: 15/03/2024</span>
               </div>
-            </div>
-            <CardTitle className="text-xl mb-4">Turma B - React Fundamentals</CardTitle>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>Início: 01/04/2024</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-              <GraduationCap className="w-4 h-4" />
-              <span>8 aulas planejadas</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Button
-              onClick={() => handleGenerateLink("react-b")}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-            >
-              <LinkIcon className="w-4 h-4 mr-2" />
-              Gerar Link de Cadastro
-            </Button>
-          </CardContent>
-        </Card>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                <GraduationCap className="w-4 h-4" />
+                <span>aulas planejadas</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={() => generateLink(classroom.id)}
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                <LinkIcon className="w-4 h-4 mr-2" />
+                Gerar Link de Cadastro
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
@@ -136,7 +167,7 @@ const MentorTurmas = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-4 bg-muted rounded-lg break-all">
-              https://plataforma.edu/cadastro/turma/{selectedClass}
+              {registrationLink}
             </div>
             <Button 
               onClick={handleCopyLink}

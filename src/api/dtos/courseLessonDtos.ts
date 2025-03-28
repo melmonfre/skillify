@@ -11,7 +11,6 @@ export interface ClassroomResponseDTO {
 export interface CourseLessonCreateDTO {
   courseId: string;
   courseLessonCategoryId: string;
-  classroomId: string;
   files: string[];
   name: string;
   duration: number;

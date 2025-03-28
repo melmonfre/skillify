@@ -1,13 +1,16 @@
-
+// src/components/mentor/MentorRedacoes.tsx
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Plus } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { EssayCard } from "@/components/redacoes/EssayCard"
 import { CorrectionDialog } from "@/components/redacoes/CorrectionDialog"
 import { NewEssayDialog } from "@/components/redacoes/NewEssayDialog"
+import { EssayMentorAPI } from "@/api/mentor/controllers/EssayMentorAPI"
+import { EssayCreateDTO, EssayResponseDTO } from "@/api/dtos/essayDtos"
+import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI"
 
 interface CorrectionForm {
   generalComments: string
@@ -18,20 +21,16 @@ interface CorrectionForm {
   competencyScore: string
 }
 
-interface NewEssayForm {
-  title: string
-  description: string
-  deadline: string
-  minWords: string
-  class: string
-}
-
 const MentorRedacoes = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [isCorrectionOpen, setIsCorrectionOpen] = useState(false)
   const [isNewEssayOpen, setIsNewEssayOpen] = useState(false)
-  const [selectedEssay, setSelectedEssay] = useState("")
+  const [selectedEssay, setSelectedEssay] = useState<string>("")
+  const [essays, setEssays] = useState<EssayResponseDTO[]>([])
+  const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
   const [correctionForm, setCorrectionForm] = useState<CorrectionForm>({
     generalComments: "",
     structureScore: "",
@@ -40,13 +39,31 @@ const MentorRedacoes = () => {
     languageScore: "",
     competencyScore: ""
   })
-  const [newEssayForm, setNewEssayForm] = useState<NewEssayForm>({
-    title: "",
-    description: "",
-    deadline: "",
-    minWords: "",
-    class: ""
-  })
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        // Fetch classrooms for the dropdown
+        const classroomData = await ClassroomMentorAPI.getAllClassrooms()
+        setClassrooms(classroomData.map(c => ({ id: c.id, name: c.name })))
+        // For this example, we'll fetch essays from the first classroom
+        if (classroomData.length > 0) {
+          const essayData = await EssayMentorAPI.getEssaysByClassroom(classroomData[0].id)
+          setEssays(essayData)
+        }
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Falha ao carregar os dados",
+          variant: "destructive",
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [toast])
 
   const handleStartCorrection = (essayId: string) => {
     setSelectedEssay(essayId)
@@ -61,12 +78,22 @@ const MentorRedacoes = () => {
     setIsCorrectionOpen(false)
   }
 
-  const handleCreateEssay = () => {
-    toast({
-      title: "Redação criada",
-      description: "A redação foi criada com sucesso!"
-    })
-    setIsNewEssayOpen(false)
+  const handleCreateEssay = async (values: EssayCreateDTO) => {
+    try {
+      const createdEssay = await EssayMentorAPI.createEssay(values)
+      setEssays([...essays, createdEssay])
+      toast({
+        title: "Redação criada",
+        description: "A redação foi criada com sucesso!"
+      })
+      setIsNewEssayOpen(false)
+    } catch (error) {
+      toast({
+        title: "Erro ao criar redação",
+        description: "Não foi possível criar a redação",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleViewCorrection = (essayId: string) => {
@@ -75,6 +102,14 @@ const MentorRedacoes = () => {
       title: "Visualizando correção",
       description: "Carregando detalhes da correção..."
     })
+  }
+
+  const filteredEssays = essays.filter(essay =>
+    essay.theme.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (loading) {
+    return <div className="p-6">Carregando...</div>
   }
 
   return (
@@ -102,28 +137,23 @@ const MentorRedacoes = () => {
         <Input 
           placeholder="Buscar redações..." 
           className="pl-10 bg-white/5 border-slate-800 text-white placeholder:text-slate-400"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <EssayCard 
-          title="Os Desafios da Educação"
-          student="Maria Silva"
-          status="pending"
-          date="Enviada há 2 dias"
-          onCorrect={() => handleStartCorrection("1")}
-          onView={() => handleViewCorrection("1")}
-        />
-
-        <EssayCard 
-          title="Tecnologia e Sociedade"
-          student="João Santos"
-          status="corrected"
-          date="Corrigida há 1 dia"
-          score={850}
-          onCorrect={() => handleStartCorrection("2")}
-          onView={() => handleViewCorrection("2")}
-        />
+        {filteredEssays.map(essay => (
+          <EssayCard 
+            key={essay.id}
+            title={essay.theme}
+            student={essay.classroom.students.values().next().value?.name || "Estudante"} // Assuming student info is available
+            status="pending" // Add status to DTO if needed
+            date={`Prazo: ${new Date(essay.maxDate).toLocaleDateString()}`}
+            onCorrect={() => handleStartCorrection(essay.id)}
+            onView={() => handleViewCorrection(essay.id)}
+          />
+        ))}
       </div>
 
       <CorrectionDialog 
@@ -137,9 +167,8 @@ const MentorRedacoes = () => {
       <NewEssayDialog
         open={isNewEssayOpen}
         onOpenChange={setIsNewEssayOpen}
-        form={newEssayForm}
-        onFormChange={setNewEssayForm}
         onSubmit={handleCreateEssay}
+        classrooms={classrooms}
       />
     </div>
   )

@@ -76,7 +76,7 @@ function App() {
                   </div>
                 </SidebarProvider>
               ) : (
-                <Navigate to="/login" replace />
+                <Navigate to="/registro" replace />
               )
             }
           />
