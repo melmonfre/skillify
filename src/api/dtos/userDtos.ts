@@ -1,7 +1,7 @@
 // src/api/admin/dtos/userDtos.ts
 export enum UserRole {
-    ADMIN = "ROLE_ADMIN",
-    ESTUDANTE = "ROLE_ESTUDANTE",
+    ADMIN = "ADMIN",
+    ESTUDANTE = "ESTUDANTE",
     MENTOR = "MENTOR"
   }
   

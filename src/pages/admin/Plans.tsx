@@ -1,5 +1,4 @@
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,51 +31,133 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import type { Plan } from "@/types"
+import { SalesPlanAdminAPI } from "@/api/admin/controllers/SalesPlanAdminAPI"
+import { SalesPlanCreateDTO, SalesPlanResponseDTO, PlanType } from "@/api/dtos/salesPlanDtos"
 
 const AdminPlans = () => {
   const { toast } = useToast()
+  const [plans, setPlans] = useState<SalesPlanResponseDTO[]>([])
   const [isNewPlanOpen, setIsNewPlanOpen] = useState(false)
   const [isEditPlanOpen, setIsEditPlanOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+  const [selectedPlan, setSelectedPlan] = useState<SalesPlanResponseDTO | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [loading, setLoading] = useState(false)
 
-  const handleNewPlan = (e: React.FormEvent) => {
+  // Fetch all plans on component mount
+  useEffect(() => {
+    fetchPlans()
+  }, [])
+
+  const fetchPlans = async () => {
+    try {
+      setLoading(true)
+      const response = await SalesPlanAdminAPI.getAllPlans()
+      setPlans(response)
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar os planos",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleNewPlan = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setIsNewPlanOpen(false)
-    toast({
-      title: "Plano criado",
-      description: "O novo plano foi criado com sucesso.",
-    })
+    const formData = new FormData(e.currentTarget)
+    
+    const newPlan: SalesPlanCreateDTO = {
+      name: formData.get("name") as string,
+      description: formData.get("description") as string,
+      price: formData.get("price") as string,
+      type: formData.get("type") as PlanType,
+      resources: (formData.get("features") as string).split("\n").filter(Boolean),
+    }
+
+    try {
+      setLoading(true)
+      await SalesPlanAdminAPI.createPlan(newPlan)
+      setIsNewPlanOpen(false)
+      toast({
+        title: "Plano criado",
+        description: "O novo plano foi criado com sucesso.",
+      })
+      fetchPlans()
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao criar o plano",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleEditPlan = (e: React.FormEvent) => {
+  const handleEditPlan = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setIsEditPlanOpen(false)
-    toast({
-      title: "Plano atualizado",
-      description: "O plano foi atualizado com sucesso.",
-    })
+    if (!selectedPlan) return
+
+    const formData = new FormData(e.currentTarget)
+    
+    const updatedPlan: SalesPlanCreateDTO = {
+      name: formData.get("editName") as string,
+      description: formData.get("editDescription") as string,
+      price: formData.get("editPrice") as string,
+      type: formData.get("editType") as PlanType,
+      resources: (formData.get("editFeatures") as string).split("\n").filter(Boolean),
+    }
+
+    try {
+      setLoading(true)
+      await SalesPlanAdminAPI.updatePlan(selectedPlan.id, updatedPlan)
+      setIsEditPlanOpen(false)
+      toast({
+        title: "Plano atualizado",
+        description: "O plano foi atualizado com sucesso.",
+      })
+      fetchPlans()
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar o plano",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleDeletePlan = () => {
-    setIsDeleteDialogOpen(false)
-    toast({
-      title: "Plano removido",
-      description: "O plano foi removido com sucesso.",
-    })
+  const handleDeletePlan = async () => {
+    if (!selectedPlan) return
+
+    try {
+      setLoading(true)
+      await SalesPlanAdminAPI.deletePlan(selectedPlan.id)
+      setIsDeleteDialogOpen(false)
+      toast({
+        title: "Plano removido",
+        description: "O plano foi removido com sucesso.",
+      })
+      fetchPlans()
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao remover o plano",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const openEditDialog = (planTitle: string) => {
-    setSelectedPlan(planTitle)
-    setIsEditPlanOpen(true)
-  }
-
-  const openDeleteDialog = (planTitle: string) => {
-    setSelectedPlan(planTitle)
-    setIsDeleteDialogOpen(true)
-  }
+  const filteredPlans = plans.filter(plan => 
+    plan.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    plan.description.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   return (
     <div className="container py-8 space-y-8">
@@ -92,6 +173,7 @@ const AdminPlans = () => {
         <Button 
           onClick={() => setIsNewPlanOpen(true)}
           size="lg"
+          disabled={loading}
           className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
         >
           <PackagePlus className="w-5 h-5 mr-2" />
@@ -112,47 +194,55 @@ const AdminPlans = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card to-primary/5">
-          <CardHeader>
-            <div className="flex justify-between items-start mb-4">
-              <CardTitle className="text-2xl font-bold">Plano Premium</CardTitle>
-              <div className="flex items-center gap-1">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">234 assinantes</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <div>
-                <div className="text-sm font-medium text-muted-foreground">Preço mensal</div>
-                <div className="text-2xl font-bold text-purple-600">R$ 99,90</div>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Acesso completo a todos os recursos da plataforma
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-2">
-              <Button 
-                variant="outline" 
-                className="w-full border-primary/20 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300"
-                onClick={() => openEditDialog("Plano Premium")}
-              >
-                <Edit className="w-4 h-4 mr-2" />
-                Editar
-              </Button>
-              <Button 
-                variant="destructive" 
-                className="w-full hover:bg-red-700 transition-all duration-300"
-                onClick={() => openDeleteDialog("Plano Premium")}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Remover
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+  {filteredPlans.map((plan) => (
+    <Card key={plan.id} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card to-primary/5">
+      <CardHeader>
+        <div className="flex justify-between items-start mb-4">
+          <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
+          <div className="flex items-center gap-1">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <span className="text-sm font-medium">234 assinantes</span>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <div>
+            <div className="text-sm font-medium text-muted-foreground">Preço mensal</div>
+            <div className="text-2xl font-bold text-purple-600">R$ {plan.price}</div>
+          </div>
+          <div className="text-sm text-muted-foreground">{plan.description}</div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            variant="outline" 
+            className="w-full border-primary/20 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300"
+            onClick={() => {
+              setSelectedPlan(plan);
+              setIsEditPlanOpen(true);
+            }}
+            disabled={loading}
+          >
+            <Edit className="w-4 h-4 mr-2" />
+            Editar
+          </Button>
+          <Button 
+            variant="destructive" 
+            className="w-full hover:bg-red-700 transition-all duration-300"
+            onClick={() => {
+              setSelectedPlan(plan);
+              setIsDeleteDialogOpen(true);
+            }}
+            disabled={loading}
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Remover
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  ))}
+</div>
 
       {/* Modal Novo Plano */}
       <Dialog open={isNewPlanOpen} onOpenChange={setIsNewPlanOpen}>
@@ -166,12 +256,13 @@ const AdminPlans = () => {
           <form onSubmit={handleNewPlan} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Nome do plano</Label>
-              <Input id="name" required className="text-lg py-6" />
+              <Input id="name" name="name" required className="text-lg py-6" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="description">Descrição</Label>
               <Textarea 
                 id="description" 
+                name="description"
                 required 
                 className="min-h-[100px] text-lg"
                 placeholder="Descreva os benefícios do plano"
@@ -182,6 +273,7 @@ const AdminPlans = () => {
                 <Label htmlFor="price">Preço mensal (R$)</Label>
                 <Input 
                   id="price" 
+                  name="price"
                   type="number" 
                   step="0.01" 
                   required 
@@ -189,14 +281,14 @@ const AdminPlans = () => {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="interval">Intervalo</Label>
-                <Select>
+                <Label htmlFor="type">Tipo</Label>
+                <Select name="type">
                   <SelectTrigger className="text-lg py-6">
-                    <SelectValue placeholder="Selecione o intervalo" />
+                    <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">Mensal</SelectItem>
-                    <SelectItem value="yearly">Anual</SelectItem>
+                  <SelectItem value={PlanType.MENSAL}>Mensal</SelectItem>
+                  <SelectItem value={PlanType.ANUAL}>Anual</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -205,15 +297,21 @@ const AdminPlans = () => {
               <Label htmlFor="features">Recursos (um por linha)</Label>
               <Textarea 
                 id="features" 
+                name="features"
                 required 
                 className="min-h-[150px] text-lg"
-                placeholder="Digite os recursos do plano, um por linha&#13;&#10;Exemplo:&#13;&#10;✓ Acesso a todos os cursos&#13;&#10;✓ Mentoria semanal&#13;&#10;✓ Certificados premium"
+                placeholder="Digite os recursos do plano, um por linha
+Exemplo:
+✓ Acesso a todos os cursos
+✓ Mentoria semanal
+✓ Certificados premium"
               />
             </div>
             <DialogFooter>
               <Button 
                 type="submit"
                 size="lg"
+                disabled={loading}
                 className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
               >
                 Criar Plano
@@ -229,7 +327,7 @@ const AdminPlans = () => {
           <DialogHeader>
             <DialogTitle className="text-2xl">Editar Plano</DialogTitle>
             <DialogDescription>
-              Edite as informações do plano {selectedPlan}.
+              Edite as informações do plano {selectedPlan?.name}.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditPlan} className="space-y-4">
@@ -237,7 +335,8 @@ const AdminPlans = () => {
               <Label htmlFor="editName">Nome do plano</Label>
               <Input 
                 id="editName" 
-                defaultValue={selectedPlan || ""} 
+                name="editName"
+                defaultValue={selectedPlan?.name || ""} 
                 required 
                 className="text-lg py-6"
               />
@@ -246,9 +345,10 @@ const AdminPlans = () => {
               <Label htmlFor="editDescription">Descrição</Label>
               <Textarea 
                 id="editDescription" 
+                name="editDescription"
                 required 
                 className="min-h-[100px] text-lg"
-                defaultValue="Acesso ilimitado a todos os cursos e recursos premium."
+                defaultValue={selectedPlan?.description || ""}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -256,22 +356,23 @@ const AdminPlans = () => {
                 <Label htmlFor="editPrice">Preço mensal (R$)</Label>
                 <Input 
                   id="editPrice" 
+                  name="editPrice"
                   type="number" 
                   step="0.01" 
-                  defaultValue="99.90"
+                  defaultValue={selectedPlan?.price || ""}
                   required 
                   className="text-lg py-6"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="editInterval">Intervalo</Label>
-                <Select defaultValue="monthly">
+                <Label htmlFor="editType">Tipo</Label>
+                <Select name="editType" defaultValue={selectedPlan?.type}>
                   <SelectTrigger className="text-lg py-6">
-                    <SelectValue placeholder="Selecione o intervalo" />
+                    <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="monthly">Mensal</SelectItem>
-                    <SelectItem value="yearly">Anual</SelectItem>
+                  <SelectItem value={PlanType.MENSAL}>Mensal</SelectItem>
+                  <SelectItem value={PlanType.ANUAL}>Anual</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -280,15 +381,17 @@ const AdminPlans = () => {
               <Label htmlFor="editFeatures">Recursos (um por linha)</Label>
               <Textarea 
                 id="editFeatures" 
+                name="editFeatures"
                 required 
                 className="min-h-[150px] text-lg"
-                defaultValue="✓ Acesso a todos os cursos&#13;&#10;✓ Mentoria semanal&#13;&#10;✓ Certificados premium&#13;&#10;✓ Suporte prioritário"
+                defaultValue={selectedPlan?.resources.join("\n") || ""}
               />
             </div>
             <DialogFooter>
               <Button 
                 type="submit"
                 size="lg"
+                disabled={loading}
                 className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
               >
                 Salvar Alterações
@@ -304,7 +407,7 @@ const AdminPlans = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl">Remover Plano</AlertDialogTitle>
             <AlertDialogDescription className="text-lg">
-              Tem certeza que deseja remover o plano {selectedPlan}? Esta ação não pode ser desfeita.
+              Tem certeza que deseja remover o plano {selectedPlan?.name}? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2">
@@ -312,6 +415,7 @@ const AdminPlans = () => {
             <AlertDialogAction 
               onClick={handleDeletePlan}
               className="bg-red-600 hover:bg-red-700 text-lg transition-colors"
+              disabled={loading}
             >
               Remover
             </AlertDialogAction>

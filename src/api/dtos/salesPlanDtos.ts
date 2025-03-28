@@ -1,10 +1,9 @@
 // src/api/admin/dtos/salesPlanDtos.ts
 
 export enum PlanType {
-    BASIC = "BASIC",
-    PREMIUM = "PREMIUM",
-    // Add other plan types as defined in your backend enum
-  }
+  MENSAL = "MENSAL",
+  ANUAL = "ANUAL"
+}
   
   export interface SalesPlanCreateDTO {
     name: string;
