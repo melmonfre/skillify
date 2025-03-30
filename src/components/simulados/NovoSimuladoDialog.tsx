@@ -1,9 +1,11 @@
-
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, useEffect } from "react"
+import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI"
+import { ClassroomResponseDTO } from "@/api/dtos/classroomDtos"
 
 interface SimuladoForm {
   title: string
@@ -29,6 +31,28 @@ export function NovoSimuladoDialog({
   onFormChange,
   onSubmit
 }: NovoSimuladoDialogProps) {
+  const [classrooms, setClassrooms] = useState<ClassroomResponseDTO[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // Fetch classrooms when dialog opens
+  useEffect(() => {
+    if (open) {
+      const fetchClassrooms = async () => {
+        try {
+          setLoading(true)
+          const response = await ClassroomMentorAPI.getAllClassrooms()
+          setClassrooms(response)
+        } catch (error) {
+          console.error('Failed to fetch classrooms:', error)
+          setClassrooms([])
+        } finally {
+          setLoading(false)
+        }
+      }
+      fetchClassrooms()
+    }
+  }, [open])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-slate-900 border-slate-800">
@@ -85,14 +109,30 @@ export function NovoSimuladoDialog({
 
           <div className="space-y-2">
             <Label htmlFor="class" className="text-white">Turma</Label>
-            <Select value={form.class} onValueChange={(value) => onFormChange({ ...form, class: value })}>
+            <Select 
+              value={form.class} 
+              onValueChange={(value) => onFormChange({ ...form, class: value })}
+              disabled={loading}
+            >
               <SelectTrigger className="bg-white/5 border-slate-800 text-white">
-                <SelectValue placeholder="Selecione uma turma" />
+                <SelectValue placeholder={loading ? "Carregando turmas..." : "Selecione uma turma"} />
               </SelectTrigger>
               <SelectContent className="bg-slate-900 border-slate-800">
-                <SelectItem value="turma-1">Turma A - Manhã</SelectItem>
-                <SelectItem value="turma-2">Turma B - Tarde</SelectItem>
-                <SelectItem value="turma-3">Turma C - Noite</SelectItem>
+                {classrooms.length > 0 ? (
+                  classrooms.map((classroom) => (
+                    <SelectItem 
+                      key={classroom.id} 
+                      value={classroom.id}
+                      className="text-white hover:bg-slate-800"
+                    >
+                      {classroom.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-classrooms" disabled className="text-slate-400">
+                    Nenhuma turma encontrada
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -108,6 +148,7 @@ export function NovoSimuladoDialog({
           <Button 
             onClick={onSubmit}
             className="bg-purple-600 hover:bg-purple-700 text-white border-none"
+            disabled={loading}
           >
             Criar Simulado
           </Button>

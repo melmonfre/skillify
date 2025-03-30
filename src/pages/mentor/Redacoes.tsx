@@ -11,6 +11,7 @@ import { NewEssayDialog } from "@/components/redacoes/NewEssayDialog"
 import { EssayMentorAPI } from "@/api/mentor/controllers/EssayMentorAPI"
 import { EssayCreateDTO, EssayResponseDTO } from "@/api/dtos/essayDtos"
 import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface CorrectionForm {
   generalComments: string
@@ -31,6 +32,7 @@ const MentorRedacoes = () => {
   const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [activeTab, setActiveTab] = useState("all")
   const [correctionForm, setCorrectionForm] = useState<CorrectionForm>({
     generalComments: "",
     structureScore: "",
@@ -44,10 +46,8 @@ const MentorRedacoes = () => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        // Fetch classrooms for the dropdown
         const classroomData = await ClassroomMentorAPI.getAllClassrooms()
         setClassrooms(classroomData.map(c => ({ id: c.id, name: c.name })))
-        // For this example, we'll fetch essays from the first classroom
         if (classroomData.length > 0) {
           const essayData = await EssayMentorAPI.getEssaysByClassroom(classroomData[0].id)
           setEssays(essayData)
@@ -132,28 +132,50 @@ const MentorRedacoes = () => {
         </Button>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-        <Input 
-          placeholder="Buscar redações..." 
-          className="pl-10 bg-white/5 border-slate-800 text-white placeholder:text-slate-400"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredEssays.map(essay => (
-          <EssayCard 
-            key={essay.id}
-            title={essay.theme}
-            student={essay.classroom.students.values().next().value?.name || "Estudante"} // Assuming student info is available
-            status="pending" // Add status to DTO if needed
-            date={`Prazo: ${new Date(essay.maxDate).toLocaleDateString()}`}
-            onCorrect={() => handleStartCorrection(essay.id)}
-            onView={() => handleViewCorrection(essay.id)}
+      <div className="space-y-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input 
+            placeholder="Buscar redações..." 
+            className="pl-10 bg-white/5 border-slate-800 text-white placeholder:text-slate-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        ))}
+        </div>
+
+        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-[200px] grid-cols-2 bg-white/5">
+            <TabsTrigger value="all" className="text-white data-[state=active]:bg-purple-600">
+              Todas
+            </TabsTrigger>
+            <TabsTrigger value="correct" className="text-white data-[state=active]:bg-purple-600">
+              Corrigir
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="all">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-4">
+              {filteredEssays.map(essay => (
+                <EssayCard 
+                  key={essay.id}
+                  title={essay.theme}
+                  student={essay.classroom.students.values().next().value?.name || "Estudante"}
+                  status="pending"
+                  date={`Prazo: ${new Date(essay.maxDate).toLocaleDateString()}`}
+                  onCorrect={() => handleStartCorrection(essay.id)}
+                  onView={() => handleViewCorrection(essay.id)}
+                />
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="correct">
+            <div className="mt-4 text-slate-400">
+              {/* Empty state for essays to be corrected */}
+              <p>Nenhuma redação para corrigir no momento.</p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
 
       <CorrectionDialog 

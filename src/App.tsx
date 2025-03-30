@@ -38,7 +38,7 @@ function App() {
                   </div>
                 </SidebarProvider>
               ) : (
-                <Navigate to="/registro" replace />
+                <Navigate to="/login" replace />
               )
             }
           />
@@ -57,7 +57,7 @@ function App() {
                   </div>
                 </SidebarProvider>
               ) : (
-                <Navigate to="/login" replace />
+                <Navigate to="/registro" replace />
               )
             }
           />
@@ -76,7 +76,7 @@ function App() {
                   </div>
                 </SidebarProvider>
               ) : (
-                <Navigate to="/registro" replace />
+                <Navigate to="/login" replace />
               )
             }
           />

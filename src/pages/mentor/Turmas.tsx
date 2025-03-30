@@ -54,7 +54,7 @@ const MentorTurmas = () => {
       const generatedToken: ClassroomAccessTokenResponseDTO = await ClassroomAccessTokenMentorAPI.generateToken(classroomId)
       const className = classrooms.find(c => c.id === classroomId)?.name || ""
       setSelectedClassId(classroomId)
-      setRegistrationLink(`${window.location.origin}/registro?token=${generatedToken.token}`)
+      setRegistrationLink(`${window.location.origin}/registro?classId=${generatedToken.token}`)
       setIsLinkDialogOpen(true)
     } catch (error) {
       toast({

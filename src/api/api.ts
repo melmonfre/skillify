@@ -11,7 +11,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   // Skip adding Authorization for validateToken endpoint
-  if (token && !config.url?.includes('/api/auth/validateToken')) {
+  if (token && !config.url?.includes('/api/auth/authenticate')) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

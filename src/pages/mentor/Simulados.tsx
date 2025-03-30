@@ -1,12 +1,14 @@
-
+// src/components/mentor/MentorSimulados.tsx
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Search } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { SimuladoCard } from "@/components/simulados/SimuladoCard"
 import { NovoSimuladoDialog } from "@/components/simulados/NovoSimuladoDialog"
 import { ResultadosDialog } from "@/components/simulados/ResultadosDialog"
+import { PracticeMentorAPI } from "@/api/mentor/controllers/PracticeMentorAPI"
+import { PracticeCreateDTO, PracticeResponseDTO } from "@/api/dtos/practiceDtos"
 
 interface SimuladoForm {
   title: string
@@ -21,6 +23,7 @@ const MentorSimulados = () => {
   const { toast } = useToast()
   const [isNewSimuladoOpen, setIsNewSimuladoOpen] = useState(false)
   const [isResultsOpen, setIsResultsOpen] = useState(false)
+  const [simulados, setSimulados] = useState<PracticeResponseDTO[]>([])
   const [simuladoForm, setSimuladoForm] = useState<SimuladoForm>({
     title: "",
     totalQuestions: "",
@@ -30,7 +33,27 @@ const MentorSimulados = () => {
     subjects: []
   })
 
-  const handleNewSimulado = () => {
+  // Assuming mentorId comes from auth context
+  const mentorId = "mentor123" // This should come from auth context in a real app
+
+  // Fetch simulados on component mount
+  useEffect(() => {
+    const fetchSimulados = async () => {
+      try {
+        const practices = await PracticeMentorAPI.getAllPractices()
+        setSimulados(practices)
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Falha ao carregar os simulados",
+          variant: "destructive"
+        })
+      }
+    }
+    fetchSimulados()
+  }, [toast])
+
+  const handleNewSimulado = async () => {
     if (!simuladoForm.title || !simuladoForm.totalQuestions || !simuladoForm.duration || !simuladoForm.date) {
       toast({
         title: "Erro",
@@ -40,20 +63,42 @@ const MentorSimulados = () => {
       return
     }
 
-    toast({
-      title: "Simulado criado!",
-      description: "O simulado foi criado com sucesso e já está disponível para os alunos.",
-      variant: "default"
-    })
-    setIsNewSimuladoOpen(false)
-    setSimuladoForm({
-      title: "",
-      totalQuestions: "",
-      duration: "",
-      date: "",
-      class: "",
-      subjects: []
-    })
+    try {
+      const practiceData: PracticeCreateDTO = {
+        mentorId: mentorId,
+        classroomId: simuladoForm.class,
+        title: simuladoForm.title,
+        numberOfQuestions: parseInt(simuladoForm.totalQuestions),
+        duracao: parseInt(simuladoForm.duration),
+        openingDate: new Date().toISOString(), // Using current date as opening
+        maximumDate: new Date(simuladoForm.date).toISOString(),
+        questionIds: new Set<string>() // Empty set as we're not handling questions in UI yet
+      }
+
+      const createdPractice = await PracticeMentorAPI.createPractice(practiceData)
+      setSimulados([...simulados, createdPractice])
+
+      toast({
+        title: "Simulado criado!",
+        description: "O simulado foi criado com sucesso e já está disponível para os alunos.",
+        variant: "default"
+      })
+      setIsNewSimuladoOpen(false)
+      setSimuladoForm({
+        title: "",
+        totalQuestions: "",
+        duration: "",
+        date: "",
+        class: "",
+        subjects: []
+      })
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao criar o simulado",
+        variant: "destructive"
+      })
+    }
   }
 
   return (
@@ -85,9 +130,21 @@ const MentorSimulados = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <SimuladoCard onViewResults={() => setIsResultsOpen(true)} />
-        <SimuladoCard onViewResults={() => setIsResultsOpen(true)} />
-        <SimuladoCard onViewResults={() => setIsResultsOpen(true)} />
+        {simulados.map((simulado) => (
+          <SimuladoCard 
+            key={simulado.id}
+            simulado={simulado}
+            onViewResults={() => setIsResultsOpen(true)}
+          />
+        ))}
+        {/* Fallback mocked cards if no simulados */}
+        {simulados.length === 0 && (
+          <>
+            <SimuladoCard onViewResults={() => setIsResultsOpen(true)} />
+            <SimuladoCard onViewResults={() => setIsResultsOpen(true)} />
+            <SimuladoCard onViewResults={() => setIsResultsOpen(true)} />
+          </>
+        )}
       </div>
 
       <NovoSimuladoDialog

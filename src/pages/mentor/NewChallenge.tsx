@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Calendar, Clock, Plus, Trash, Trophy, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,13 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
-interface Exercise {
-  id: string;
-  title: string;
-  description: string;
-  difficulty: string;
-}
+import { GoalMentorAPI } from "@/api/mentor/controllers/GoalMentorAPI";
+import { GoalRequestDTO, GoalType } from "@/api/dtos/goalDtos";
+import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI";
+import { ClassroomResponseDTO } from "@/api/dtos/classroomDtos";
 
 export default function NewChallenge() {
   const navigate = useNavigate();
@@ -31,47 +27,36 @@ export default function NewChallenge() {
   
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [xpReward, setXpReward] = useState("500");
-  const [challengeType, setChallengeType] = useState("weekly");
-  const [deadline, setDeadline] = useState("");
+  const [number, setNumber] = useState("1");
+  const [goalType, setGoalType] = useState<GoalType>(GoalType.QUESTION);
+  const [openingDate, setOpeningDate] = useState(new Date().toISOString().split('T')[0]);
+  const [finalDate, setFinalDate] = useState("");
   const [isPublic, setIsPublic] = useState(true);
-  const [selectedClass, setSelectedClass] = useState("");
-  const [exercises, setExercises] = useState<Exercise[]>([
-    { 
-      id: "1", 
-      title: "Exercício 1", 
-      description: "Descrição do exercício 1", 
-      difficulty: "medium" 
-    }
-  ]);
-  
-  const handleAddExercise = () => {
-    const newId = (exercises.length + 1).toString();
-    setExercises([
-      ...exercises,
-      {
-        id: newId,
-        title: `Exercício ${newId}`,
-        description: "",
-        difficulty: "medium"
+  const [classroomIds, setClassroomIds] = useState<string[]>([]);
+  const [availableClassrooms, setAvailableClassrooms] = useState<ClassroomResponseDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [classroomsLoading, setClassroomsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch classrooms when component mounts
+  useEffect(() => {
+    const fetchClassrooms = async () => {
+      try {
+        setClassroomsLoading(true);
+        const classrooms = await ClassroomMentorAPI.getAllClassrooms();
+        setAvailableClassrooms(classrooms);
+      } catch (err) {
+        setError("Erro ao carregar as turmas");
+        console.error("Error fetching classrooms:", err);
+      } finally {
+        setClassroomsLoading(false);
       }
-    ]);
-  };
-  
-  const handleRemoveExercise = (id: string) => {
-    setExercises(exercises.filter(ex => ex.id !== id));
-  };
-  
-  const handleExerciseChange = (id: string, field: keyof Exercise, value: string) => {
-    setExercises(
-      exercises.map(ex => 
-        ex.id === id ? { ...ex, [field]: value } : ex
-      )
-    );
-  };
-  
-  const handleCreateChallenge = () => {
-    // Validate form
+    };
+
+    fetchClassrooms();
+  }, []);
+
+  const handleCreateChallenge = async () => {
     if (!title.trim()) {
       toast({
         title: "Erro ao criar desafio",
@@ -80,39 +65,70 @@ export default function NewChallenge() {
       });
       return;
     }
-    
-    if (exercises.length === 0) {
+
+    if (!number || Number(number) <= 0) {
       toast({
         title: "Erro ao criar desafio",
-        description: "Adicione pelo menos um exercício ao desafio",
+        description: "O número de itens deve ser maior que zero",
         variant: "destructive"
       });
       return;
     }
-    
-    // In a real app, you would send this data to your API
-    const challengeData = {
-      title,
-      description,
-      xpReward: Number(xpReward),
-      challengeType,
-      deadline,
-      isPublic,
-      selectedClass: selectedClass || null,
-      exercises
-    };
-    
-    console.log("Challenge data:", challengeData);
-    
-    toast({
-      title: "Desafio criado com sucesso!",
-      description: "O desafio foi criado e está pronto para ser publicado.",
-    });
-    
-    // Navigate back to challenges page
-    navigate("/mentor/desafios");
+
+    if (!finalDate) {
+      toast({
+        title: "Erro ao criar desafio",
+        description: "A data limite é obrigatória",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const goalData: GoalRequestDTO = {
+        classroomIds: isPublic ? availableClassrooms.map(c => c.id) : classroomIds,
+        number: Number(number),
+        type: goalType,
+        openingDate: new Date(openingDate).toISOString(),
+        finalDate: new Date(finalDate).toISOString(),
+      };
+
+      const createdGoal = await GoalMentorAPI.createGoal(goalData);
+
+      toast({
+        title: "Desafio criado com sucesso!",
+        description: "O desafio foi criado e atribuído às turmas selecionadas.",
+      });
+
+      navigate("/mentor/desafios");
+    } catch (error) {
+      toast({
+        title: "Erro ao criar desafio",
+        description: "Ocorreu um erro ao salvar o desafio. Tente novamente.",
+        variant: "destructive"
+      });
+      console.error("Error creating goal:", error);
+    } finally {
+      setLoading(false);
+    }
   };
-  
+
+  if (classroomsLoading) {
+    return <div className="container py-8">Carregando turmas...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="container py-8">
+        <div className="text-red-500">{error}</div>
+        <Button onClick={() => window.location.reload()} className="mt-4">
+          Tentar novamente
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-8 space-y-6">
       <Link to="/mentor/desafios" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary">
@@ -135,7 +151,7 @@ export default function NewChallenge() {
                 <Label htmlFor="title">Título do Desafio</Label>
                 <Input
                   id="title"
-                  placeholder="Ex: Desafio semanal de programação"
+                  placeholder="Ex: Desafio de questões de programação"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
@@ -154,130 +170,66 @@ export default function NewChallenge() {
               
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="xpReward">Recompensa (XP)</Label>
+                  <Label htmlFor="number">Quantidade</Label>
+                  <Input
+                    id="number"
+                    type="number"
+                    placeholder="1"
+                    value={number}
+                    onChange={(e) => setNumber(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label>Tipo de Desafio</Label>
+                  <RadioGroup 
+                    value={goalType}
+                    onValueChange={(value) => setGoalType(value as GoalType)}
+                    className="flex flex-col sm:flex-row gap-4"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value={GoalType.QUESTION} id="question" />
+                      <Label htmlFor="question" className="font-normal">Questões</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value={GoalType.ESSAY} id="essay" />
+                      <Label htmlFor="essay" className="font-normal">Redações</Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+              
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="openingDate">Data de Início</Label>
                   <div className="relative">
-                    <Trophy className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="xpReward"
-                      type="number"
+                      id="openingDate"
+                      type="date"
                       className="pl-10"
-                      placeholder="500"
-                      value={xpReward}
-                      onChange={(e) => setXpReward(e.target.value)}
+                      value={openingDate}
+                      onChange={(e) => setOpeningDate(e.target.value)}
                     />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="deadline">Data Limite</Label>
+                  <Label htmlFor="finalDate">Data Limite</Label>
                   <div className="relative">
                     <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="deadline"
+                      id="finalDate"
                       type="date"
                       className="pl-10"
-                      value={deadline}
-                      onChange={(e) => setDeadline(e.target.value)}
+                      value={finalDate}
+                      onChange={(e) => setFinalDate(e.target.value)}
                     />
                   </div>
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <Label>Tipo de Desafio</Label>
-                <RadioGroup 
-                  defaultValue="weekly" 
-                  value={challengeType}
-                  onValueChange={setChallengeType}
-                  className="flex flex-col sm:flex-row gap-4"
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="daily" id="daily" />
-                    <Label htmlFor="daily" className="font-normal">Diário</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="weekly" id="weekly" />
-                    <Label htmlFor="weekly" className="font-normal">Semanal</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="monthly" id="monthly" />
-                    <Label htmlFor="monthly" className="font-normal">Mensal</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="custom" id="custom" />
-                    <Label htmlFor="custom" className="font-normal">Personalizado</Label>
-                  </div>
-                </RadioGroup>
-              </div>
             </CardContent>
           </Card>
-          
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold">Exercícios</h2>
-              <Button onClick={handleAddExercise} variant="outline" size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Exercício
-              </Button>
-            </div>
-            
-            {exercises.map((exercise, index) => (
-              <Card key={exercise.id}>
-                <CardContent className="p-6 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-medium">Exercício {index + 1}</h3>
-                    {exercises.length > 1 && (
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleRemoveExercise(exercise.id)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor={`ex-title-${exercise.id}`}>Título</Label>
-                    <Input
-                      id={`ex-title-${exercise.id}`}
-                      value={exercise.title}
-                      onChange={(e) => handleExerciseChange(exercise.id, "title", e.target.value)}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor={`ex-desc-${exercise.id}`}>Descrição</Label>
-                    <Textarea
-                      id={`ex-desc-${exercise.id}`}
-                      value={exercise.description}
-                      onChange={(e) => handleExerciseChange(exercise.id, "description", e.target.value)}
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor={`ex-diff-${exercise.id}`}>Dificuldade</Label>
-                    <Select
-                      value={exercise.difficulty}
-                      onValueChange={(value) => handleExerciseChange(exercise.id, "difficulty", value)}
-                    >
-                      <SelectTrigger id={`ex-diff-${exercise.id}`}>
-                        <SelectValue placeholder="Selecione a dificuldade" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="easy">Fácil</SelectItem>
-                        <SelectItem value="medium">Médio</SelectItem>
-                        <SelectItem value="hard">Difícil</SelectItem>
-                        <SelectItem value="expert">Expert</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </div>
         
         <div className="space-y-6">
@@ -289,7 +241,7 @@ export default function NewChallenge() {
                 <div className="space-y-0.5">
                   <Label>Desafio Público</Label>
                   <p className="text-sm text-muted-foreground">
-                    Disponível para todos os alunos
+                    Disponível para todas as turmas
                   </p>
                 </div>
                 <Switch 
@@ -300,66 +252,70 @@ export default function NewChallenge() {
               
               {!isPublic && (
                 <div className="space-y-2 pt-2">
-                  <Label htmlFor="class">Selecionar Turma</Label>
+                  <Label>Selecionar Turmas</Label>
                   <Select
-                    value={selectedClass}
-                    onValueChange={setSelectedClass}
+                    onValueChange={(value) => {
+                      if (!classroomIds.includes(value)) {
+                        setClassroomIds([...classroomIds, value]);
+                      }
+                    }}
                   >
-                    <SelectTrigger id="class">
-                      <SelectValue placeholder="Selecione uma turma" />
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione turmas" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="t1">Turma 1 - Desenvolvimento Web</SelectItem>
-                      <SelectItem value="t2">Turma 2 - Data Science</SelectItem>
-                      <SelectItem value="t3">Turma 3 - Mobile</SelectItem>
+                      {availableClassrooms.map(classroom => (
+                        <SelectItem key={classroom.id} value={classroom.id}>
+                          {classroom.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  <div className="mt-2 space-y-1">
+                    {classroomIds.map(id => (
+                      <div key={id} className="flex items-center justify-between text-sm">
+                        <span>{availableClassrooms.find(c => c.id === id)?.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setClassroomIds(classroomIds.filter(cid => cid !== id))}
+                        >
+                          <Trash className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
               
               <div className="flex items-center justify-between py-2 border-t">
                 <div className="space-y-0.5">
-                  <Label>Total de Exercícios</Label>
+                  <Label>Total de Itens</Label>
                   <p className="text-sm text-muted-foreground">
-                    Exercícios no desafio
+                    {goalType === GoalType.QUESTION ? "Questões" : "Redações"}
                   </p>
                 </div>
-                <span className="font-bold">{exercises.length}</span>
+                <span className="font-bold">{number}</span>
               </div>
               
               <div className="flex items-center justify-between py-2 border-t">
                 <div className="space-y-0.5">
-                  <Label>Recompensa</Label>
+                  <Label>Turmas Atribuídas</Label>
                   <p className="text-sm text-muted-foreground">
-                    Pontos de experiência
+                    Número de turmas
                   </p>
                 </div>
-                <span className="font-bold flex items-center">
-                  <Trophy className="h-4 w-4 mr-1 text-yellow-500" />
-                  {xpReward} XP
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between py-2 border-t">
-                <div className="space-y-0.5">
-                  <Label>Duração</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Tipo de desafio
-                  </p>
-                </div>
-                <span className="font-bold flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  {challengeType === "daily" ? "Diário" : 
-                   challengeType === "weekly" ? "Semanal" : 
-                   challengeType === "monthly" ? "Mensal" : "Personalizado"}
+                <span className="font-bold">
+                  {isPublic ? availableClassrooms.length : classroomIds.length}
                 </span>
               </div>
               
               <Button 
                 onClick={handleCreateChallenge}
                 className="w-full mt-4"
+                disabled={loading || classroomsLoading}
               >
-                Criar Desafio
+                {loading ? "Criando..." : "Criar Desafio"}
               </Button>
             </CardContent>
           </Card>
@@ -370,19 +326,15 @@ export default function NewChallenge() {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  Crie desafios progressivos, do mais fácil ao mais difícil
+                  Defina metas realistas para o número de itens
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  Defina objetivos claros para cada exercício
+                  Escolha datas que deem tempo suficiente aos alunos
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-primary">•</span>
-                  Use recompensas proporcionais à dificuldade
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-primary">•</span>
-                  Forneça descrições detalhadas para melhor compreensão
+                  Forneça instruções claras na descrição
                 </li>
               </ul>
             </CardContent>

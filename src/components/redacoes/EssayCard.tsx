@@ -1,8 +1,8 @@
-
+// src/components/redacoes/EssayCard.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Clock, CheckCircle2, Pencil } from "lucide-react"
+import { FileText, Clock, CheckCircle2 } from "lucide-react"
 
 interface EssayCardProps {
   title: string
@@ -45,23 +45,13 @@ export const EssayCard = ({ title, student, status, date, score, onCorrect, onVi
         )}
       </div>
       <div className="grid grid-cols-1 gap-2 mt-4">
-        {status === "pending" ? (
-          <Button 
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white border-none"
-            onClick={onCorrect}
-          >
-            <Pencil className="w-4 h-4 mr-2" />
-            Corrigir Redação
-          </Button>
-        ) : (
-          <Button 
-            variant="outline" 
-            className="w-full bg-white/5 border-slate-800 hover:bg-white/10 hover:border-slate-700 text-white"
-            onClick={onView}
-          >
-            Ver Correção
-          </Button>
-        )}
+        <Button 
+          variant="outline" 
+          className="w-full bg-white/5 border-slate-800 hover:bg-white/10 hover:border-slate-700 text-white"
+          onClick={status === "pending" ? onCorrect : onView}
+        >
+          {status === "pending" ? "Ver Redação" : "Ver Correção"}
+        </Button>
       </div>
     </CardContent>
   </Card>
