@@ -1,4 +1,3 @@
-
 import {
   Users,
   BookOpen,
@@ -10,6 +9,7 @@ import {
   BarChart,
   MessageSquare,
   GraduationCap,
+  LogOut
 } from "lucide-react"
 import {
   Sidebar,
@@ -34,6 +34,7 @@ const menuItems = [
   { title: "Desafios", icon: Trophy, url: "/mentor/desafios" },
   { title: "Mensagens", icon: MessageSquare, url: "/mentor/mensagens" },
   { title: "Progresso", icon: BarChart, url: "/mentor/progresso" },
+  { title: "Logout", icon: LogOut, url: "/logout" },
 ]
 
 export function MentorSidebar() {

@@ -1,4 +1,3 @@
-
 import {
   Users,
   BookOpen,
@@ -6,6 +5,7 @@ import {
   UserCog,
   Package,
   GraduationCap,
+  LogOut
 } from "lucide-react"
 import {
   Sidebar,
@@ -17,6 +17,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Link } from "react-router-dom"
 
 const menuItems = [
   { title: "Dashboard", icon: LayoutDashboard, url: "/admin/dashboard" },
@@ -25,6 +26,7 @@ const menuItems = [
   { title: "Alunos", icon: Users, url: "/admin/alunos" },
   { title: "Turmas", icon: GraduationCap, url: "/admin/turmas" },
   { title: "Planos", icon: Package, url: "/admin/planos" },
+  { title: "Logout", icon: LogOut, url: "/logout" },
 ]
 
 export function AdminSidebar() {
@@ -38,10 +40,10 @@ export function AdminSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
+                    <Link to={item.url} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent transition-colors">
+                      <item.icon className="w-5 h-5" />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

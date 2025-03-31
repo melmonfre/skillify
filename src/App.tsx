@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
@@ -11,24 +11,100 @@ import { ThemeProvider } from "next-themes";
 import Login from "@/pages/Login";
 import Register from "./pages/Register";
 import { Toaster } from "./components/ui/toaster";
+import { useEffect, useState } from "react";
 
 function App() {
-  const isAuthenticated = !!localStorage.getItem("token");
-  const userRole = localStorage.getItem("userRole")?.toUpperCase();
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+
+  // Initialize auth state
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("userRole")?.toUpperCase();
+    setIsAuthenticated(!!token);
+    setUserRole(role);
+    setAuthChecked(true);
+  }, []);
+
+  const getDashboardPath = () => {
+    switch (userRole) {
+      case "ESTUDANTE":
+        return "/dashboard";
+      case "ADMIN":
+        return "/admin";
+      case "MENTOR":
+        return "/mentor";
+      default:
+        return "/login";
+    }
+  };
+
+  const Logout = () => {
+    const navigate = useNavigate();
+
+    useEffect(() => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("userId");
+      setIsAuthenticated(false);
+      setUserRole(null);
+      navigate("/");
+    }, [navigate]);
+
+    return null;
+  };
+
+  const AuthWrapper = ({ children, requiredRole }) => {
+    if (!authChecked) {
+      return null; // or loading spinner
+    }
+
+    if (!isAuthenticated) {
+      return <Navigate to="/login" replace />;
+    }
+
+    if (requiredRole && userRole !== requiredRole) {
+      return <Navigate to={getDashboardPath()} replace />;
+    }
+
+    return children;
+  };
+
+  // Only render routes after auth state is initialized
+  if (!authChecked) {
+    return null; // or loading spinner
+  }
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <Router>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
+          <Route
+            path="/login"
+            element={
+              isAuthenticated ? (
+                <Navigate to={getDashboardPath()} replace />
+              ) : (
+                <Login 
+                  onLoginSuccess={(token, role) => {
+                    localStorage.setItem("token", token);
+                    localStorage.setItem("userRole", role);
+                    setIsAuthenticated(true);
+                    setUserRole(role.toUpperCase());
+                  }}
+                />
+              )
+            }
+          />
           <Route path="/registro" element={<Register />} />
+          <Route path="/logout" element={<Logout />} />
           
-          {/* Student routes with sidebar */}
           <Route
             path="/dashboard/*"
             element={
-              isAuthenticated && userRole === "ESTUDANTE" ? (
+              <AuthWrapper requiredRole="ESTUDANTE">
                 <SidebarProvider>
                   <div className="flex min-h-screen w-full">
                     <AppSidebar />
@@ -37,17 +113,14 @@ function App() {
                     </main>
                   </div>
                 </SidebarProvider>
-              ) : (
-                <Navigate to="/login" replace />
-              )
+              </AuthWrapper>
             }
           />
-
-          {/* Admin routes with sidebar */}
+          
           <Route
             path="/admin/*"
             element={
-              isAuthenticated && userRole === "ADMIN" ? (
+              <AuthWrapper requiredRole="ADMIN">
                 <SidebarProvider>
                   <div className="flex min-h-screen w-full">
                     <AdminSidebar />
@@ -56,17 +129,14 @@ function App() {
                     </main>
                   </div>
                 </SidebarProvider>
-              ) : (
-                <Navigate to="/registro" replace />
-              )
+              </AuthWrapper>
             }
           />
-
-          {/* Mentor routes with sidebar */}
+          
           <Route
             path="/mentor/*"
             element={
-              isAuthenticated && userRole === "MENTOR" ? (
+              <AuthWrapper requiredRole="MENTOR">
                 <SidebarProvider>
                   <div className="flex min-h-screen w-full">
                     <MentorSidebar />
@@ -75,14 +145,14 @@ function App() {
                     </main>
                   </div>
                 </SidebarProvider>
-              ) : (
-                <Navigate to="/login" replace />
-              )
+              </AuthWrapper>
             }
           />
-
-          {/* Catch-all route */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          
+          <Route 
+            path="*" 
+            element={<Navigate to={isAuthenticated ? getDashboardPath() : "/login"} replace />} 
+          />
         </Routes>
         <Toaster />
       </Router>

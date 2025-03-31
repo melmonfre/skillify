@@ -1,5 +1,4 @@
-
-import { Book, Home, MessageCircle, Award, ChartBar, User, PenTool, FileText } from "lucide-react"
+import { Book, Home, MessageCircle, Award, ChartBar, User, PenTool, FileText, LogOut } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -10,6 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Link } from "react-router-dom"
 
 const mainMenuItems = [
   { title: "Home", icon: Home, url: "/dashboard" },
@@ -20,6 +20,7 @@ const mainMenuItems = [
   { title: "Desafios", icon: Award, url: "/desafios" },
   { title: "Progresso", icon: ChartBar, url: "/progresso" },
   { title: "Perfil", icon: User, url: "/configuracoes" },
+  { title: "Logout", icon: LogOut, url: "/logout" },
 ]
 
 export function AppSidebar() {
@@ -33,10 +34,10 @@ export function AppSidebar() {
               {mainMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <a href={item.url}>
-                      <item.icon />
+                    <Link to={item.url} className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent transition-colors">
+                      <item.icon className="w-5 h-5" />
                       <span>{item.title}</span>
-                    </a>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

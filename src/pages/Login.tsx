@@ -21,7 +21,11 @@ const formSchema = z.object({
   password: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
 });
 
-export default function Login() {
+interface LoginProps {
+  onLoginSuccess?: (token: string, role: string) => void;
+}
+
+export default function Login({ onLoginSuccess }: LoginProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -42,12 +46,17 @@ export default function Login() {
 
       const response = await AuthenticationAPI.login(authRequest);
       
+      // Store authentication data
       localStorage.setItem('token', response.token);
       localStorage.setItem('userRole', response.userRole);
-      console.log("Token:", localStorage.getItem("token"));
-      console.log("Role:", localStorage.getItem("userRole"));
       localStorage.setItem("userId", response.userId);
 
+      // Call the success callback if provided
+      if (onLoginSuccess) {
+        onLoginSuccess(response.token, response.userRole);
+      }
+
+      // Redirect based on role
       switch (response.userRole.toUpperCase()) {
         case "ADMIN":
           navigate("/admin/dashboard");
@@ -62,7 +71,6 @@ export default function Login() {
           navigate("/");
       }
     } catch (error) {
-      // Simplified error handling to ensure toast appears
       const errorMessage = error instanceof Error 
         ? error.message 
         : "Ocorreu um erro desconhecido";
@@ -81,16 +89,6 @@ export default function Login() {
       console.error("Login error:", error);
     }
   }
-
-  // Test toast on mount to verify it works
-  // Remove this after confirming toasts appear
-  // useEffect(() => {
-  //   toast({
-  //     title: "Teste",
-  //     description: "Toast funcionando?",
-  //     variant: "default",
-  //   });
-  // }, [toast]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-900 to-purple-900 py-12 px-4 sm:px-6 lg:px-8">
