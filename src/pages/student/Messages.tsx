@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, MessageCircle } from "lucide-react"
+import { Search, MessageCircle, UserPlus } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { CourseChat } from "@/components/CourseChat"
 import { MessageStudentAPI } from "@/api/student/controllers/MessageStudentAPI"
@@ -22,6 +22,7 @@ const StudentMessages = () => {
   const [selectedMentor, setSelectedMentor] = useState<MentorChat | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [mentorsWithChats, setMentorsWithChats] = useState<MentorChat[]>([])
+  const [availableMentors, setAvailableMentors] = useState<MentorChat[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -33,10 +34,15 @@ const StudentMessages = () => {
         setLoading(true)
         setError(null)
         
+        // Fetch existing messages
         const receivedMessages = await MessageStudentAPI.getReceivedMessages()
         const sentMessages = await MessageStudentAPI.getSentMessages()
         const allMessages = [...receivedMessages, ...sentMessages]
         
+        // Fetch available mentors
+        const availableMentorsResponse = await MessageStudentAPI.findAvailableMentorsForChat()
+        
+        // Process mentors with existing chats
         const mentorMap = new Map<string, MentorChat>()
         allMessages.forEach((message: MessageResponseDTO) => {
           const mentor = message.remetente.role === UserRole.MENTOR 
@@ -62,8 +68,21 @@ const StudentMessages = () => {
         const mentorsWithChatsList = Array.from(mentorMap.values())
         setMentorsWithChats(mentorsWithChatsList)
 
-        if (mentorsWithChatsList.length === 0) {
-          setError('Nenhuma conversa com mentores encontrada')
+        // Process available mentors without existing chats
+        const mentorsWithChatsIds = new Set(mentorsWithChatsList.map(m => m.id))
+        const availableMentorsList = availableMentorsResponse
+          .filter(mentor => mentor.role === UserRole.MENTOR)
+          .filter(mentor => !mentorsWithChatsIds.has(mentor.id))
+          .map(mentor => ({
+            id: mentor.id,
+            name: mentor.name,
+            avatar: undefined,
+            unread: false
+          }))
+        setAvailableMentors(availableMentorsList)
+
+        if (mentorsWithChatsList.length === 0 && availableMentorsList.length === 0) {
+          setError('Nenhum mentor disponível encontrado')
         }
       } catch (error) {
         console.error('Failed to fetch data:', error)
@@ -81,7 +100,10 @@ const StudentMessages = () => {
     }
   }, [studentId])
 
-  const filteredMentors = mentorsWithChats.filter(mentor => 
+  const filteredMentorsWithChats = mentorsWithChats.filter(mentor => 
+    mentor.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+  const filteredAvailableMentors = availableMentors.filter(mentor => 
     mentor.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -97,18 +119,32 @@ const StudentMessages = () => {
       
       const sentMessage = await MessageStudentAPI.sendMessage(messageData)
       
-      setMentorsWithChats(prev => {
-        const updated = prev.filter(m => m.id !== selectedMentor.id)
-        const updatedMentor: MentorChat = {
+      // If this was a new mentor, move them to the with-chats list
+      if (!mentorsWithChats.some(m => m.id === selectedMentor.id)) {
+        const newMentorChat: MentorChat = {
           ...selectedMentor,
           lastMessage: sentMessage.content,
           time: new Date().toLocaleTimeString(),
           unread: false
         }
-        return [...updated, updatedMentor]
-      })
+        setAvailableMentors(prev => prev.filter(m => m.id !== selectedMentor.id))
+        setMentorsWithChats(prev => [...prev, newMentorChat])
+      } else {
+        // Update existing mentor chat
+        setMentorsWithChats(prev => {
+          const updated = prev.filter(m => m.id !== selectedMentor.id)
+          const updatedMentor: MentorChat = {
+            ...selectedMentor,
+            lastMessage: sentMessage.content,
+            time: new Date().toLocaleTimeString(),
+            unread: false
+          }
+          return [...updated, updatedMentor]
+        })
+      }
+      
       setSelectedMentor({
-        ...selectedMentor,  // Fixed typo here: changed 'selectedMentorasa' to 'selectedMentor'
+        ...selectedMentor,
         lastMessage: content,
         time: new Date().toLocaleTimeString()
       })
@@ -155,42 +191,80 @@ const StudentMessages = () => {
                 <div className="text-red-400 text-center py-4">{error}</div>
               ) : (
                 <div className="space-y-4">
-                  {filteredMentors.length > 0 ? (
-                    filteredMentors.map((mentor) => (
-                      <button
-                        key={mentor.id}
-                        className={`w-full p-3 rounded-lg text-left transition-colors ${
-                          selectedMentor?.id === mentor.id
-                            ? "bg-purple-500/10 border border-purple-500/20"
-                            : "hover:bg-slate-800/50"
-                        }`}
-                        onClick={() => setSelectedMentor(mentor)}
-                      >
-                        <div className="flex items-start gap-3">
-                          <Avatar>
-                            <AvatarImage src={mentor.avatar} />
-                            <AvatarFallback className="bg-purple-500/20 text-purple-400">{mentor.name[0]}</AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-white">{mentor.name}</span>
-                              <span className="text-xs text-slate-400">
-                                {mentor.time}
-                              </span>
+                  {/* Existing chats with mentors */}
+                  {filteredMentorsWithChats.length > 0 && (
+                    <div className="space-y-2">
+                      {filteredMentorsWithChats.map((mentor) => (
+                        <button
+                          key={mentor.id}
+                          className={`w-full p-3 rounded-lg text-left transition-colors ${
+                            selectedMentor?.id === mentor.id
+                              ? "bg-purple-500/10 border border-purple-500/20"
+                              : "hover:bg-slate-800/50"
+                          }`}
+                          onClick={() => setSelectedMentor(mentor)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Avatar>
+                              <AvatarImage src={mentor.avatar} />
+                              <AvatarFallback className="bg-purple-500/20 text-purple-400">{mentor.name[0]}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-white">{mentor.name}</span>
+                                <span className="text-xs text-slate-400">
+                                  {mentor.time}
+                                </span>
+                              </div>
+                              <p className="text-sm text-slate-400 truncate">
+                                {mentor.lastMessage}
+                              </p>
                             </div>
-                            <p className="text-sm text-slate-400 truncate">
-                              {mentor.lastMessage}
-                            </p>
+                            {mentor.unread && (
+                              <div className="w-2 h-2 rounded-full bg-purple-500" />
+                            )}
                           </div>
-                          {mentor.unread && (
-                            <div className="w-2 h-2 rounded-full bg-purple-500" />
-                          )}
-                        </div>
-                      </button>
-                    ))
-                  ) : (
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Available mentors without existing chats */}
+                  {filteredAvailableMentors.length > 0 && (
+                    <>
+                      <div className="text-white font-semibold flex items-center gap-2 mt-4">
+                        <UserPlus className="w-5 h-5 text-purple-400" />
+                        Mentores Disponíveis
+                      </div>
+                      <div className="space-y-2">
+                        {filteredAvailableMentors.map((mentor) => (
+                          <button
+                            key={mentor.id}
+                            className={`w-full p-3 rounded-lg text-left transition-colors ${
+                              selectedMentor?.id === mentor.id
+                                ? "bg-purple-500/10 border border-purple-500/20"
+                                : "hover:bg-slate-800/50"
+                            }`}
+                            onClick={() => setSelectedMentor(mentor)}
+                          >
+                            <div className="flex items-start gap-3">
+                              <Avatar>
+                                <AvatarImage src={mentor.avatar} />
+                                <AvatarFallback className="bg-purple-500/20 text-purple-400">{mentor.name[0]}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <span className="font-medium text-white">{mentor.name}</span>
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+
+                  {filteredMentorsWithChats.length === 0 && filteredAvailableMentors.length === 0 && (
                     <div className="text-slate-400 text-center py-4">
-                      Nenhuma conversa encontrada
+                      Nenhum mentor encontrado
                     </div>
                   )}
                 </div>

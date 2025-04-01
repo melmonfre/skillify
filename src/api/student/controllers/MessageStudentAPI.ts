@@ -1,4 +1,5 @@
 // src/api/student/controllers/MessageStudentAPI.ts
+import { UserResponseDTO } from '@/api/dtos/userDtos';
 import api from '../../api';
 import { MessageCreateDTO, MessageResponseDTO } from '../../dtos/messageDtos';
 
@@ -45,6 +46,20 @@ export class MessageStudentAPI {
       throw error;
     }
   }
+
+    /**
+   * Finds all available mentors that the student can chat with
+   * @returns Promise containing set of mentor DTOs
+   */
+    static async findAvailableMentorsForChat(): Promise<UserResponseDTO[]> {
+      try {
+        const response = await api.get<UserResponseDTO[]>('/api/student/messages/mentors');
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching available mentors:', error);
+        throw error;
+      }
+    }
 }
 
 // Usage example:
