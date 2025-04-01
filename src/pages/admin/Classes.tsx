@@ -44,13 +44,14 @@ const AdminClasses = () => {
     fetchClasses()
   }, [toast])
 
-  const handleNewClass = async (e: React.FormEvent, values: { name: string; mentorId: string }) => {
+  const handleNewClass = async (e: React.FormEvent, values: { name: string; mentorId: string; courseIds: string[] }) => {
     e.preventDefault()
     try {
       const newClass: ClassroomCreateDTO = {
+        studentIds: new Set(),
         name: values.name,
         mentorId: values.mentorId,
-        studentIds: new Set(),
+        courseIds: values.courseIds
       }
       const createdClass = await ClassroomAdminAPI.createClassroom(newClass)
       setClasses([...classes, createdClass])
@@ -68,7 +69,7 @@ const AdminClasses = () => {
     }
   }
 
-  const handleEditClass = async (e: React.FormEvent, values: { name: string; mentorId: string }) => {
+  const handleEditClass = async (e: React.FormEvent, values: { name: string; mentorId: string; courseIds: string[] }) => {
     e.preventDefault()
     if (!selectedClassId) return
     try {
@@ -76,13 +77,14 @@ const AdminClasses = () => {
         name: values.name,
         mentorId: values.mentorId,
         studentIds: new Set(),
+        courseIds: values.courseIds
       }
-      const updatedClass = await ClassroomAdminAPI.updateClassroom(selectedClassId, updatedClassData)
+      const updatedClass = await ClassroomAdminAPI.editCourseClassrooms(selectedClassId, updatedClassData)
       setClasses(classes.map(c => c.id === selectedClassId ? updatedClass : c))
       setIsEditClassOpen(false)
       toast({
         title: "Turma atualizada",
-        description: "A turma foi atualizada com sucesso.",
+        description: "A turma e seus cursos foram atualizados com sucesso.",
       })
     } catch (error) {
       toast({
@@ -214,6 +216,7 @@ const AdminClasses = () => {
         onOpenChange={setIsEditClassOpen}
         onSubmit={handleEditClass}
         selectedClass={selectedClassId ? classes.find(c => c.id === selectedClassId)?.name || null : null}
+        classId={selectedClassId}
       />
 
       <DeleteClassDialog

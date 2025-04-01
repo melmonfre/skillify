@@ -139,9 +139,28 @@ const MentorTurmas = () => {
                 <Calendar className="w-4 h-4" />
                 <span>Início: 15/03/2024</span>
               </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
-                <GraduationCap className="w-4 h-4" />
-                <span>aulas planejadas</span>
+              <div className="space-y-2 mt-2">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <GraduationCap className="w-4 h-4" />
+                  <span>Cursos:</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {classroom.courses.length > 0 ? (
+                    classroom.courses.map((course) => (
+                      <Badge 
+                        key={course.id}
+                        variant="secondary"
+                        className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                      >
+                        {course.name}
+                      </Badge>
+                    ))
+                  ) : (
+                    <span className="text-sm text-muted-foreground">
+                      Nenhum curso atribuído
+                    </span>
+                  )}
+                </div>
               </div>
             </CardHeader>
             <CardContent>

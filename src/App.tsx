@@ -12,6 +12,7 @@ import Login from "@/pages/Login";
 import Register from "./pages/Register";
 import { Toaster } from "./components/ui/toaster";
 import { useEffect, useState } from "react";
+import { StudentSidebar } from "./components/layout/StudentSidebar";
 
 function App() {
   const [authChecked, setAuthChecked] = useState(false);
@@ -107,7 +108,7 @@ function App() {
               <AuthWrapper requiredRole="ESTUDANTE">
                 <SidebarProvider>
                   <div className="flex min-h-screen w-full">
-                    <AppSidebar />
+                    <StudentSidebar />
                     <main className="flex-1">
                       <StudentRoutes />
                     </main>

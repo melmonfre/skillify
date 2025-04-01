@@ -22,6 +22,7 @@ import PlanDetails from "@/pages/student/PlanDetails";
 import ContinueChallenge from "@/pages/student/ContinueChallenge";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
+import StudentMessages from "@/pages/student/Messages";
 
 export const StudentRoutes = () => {
   return (
@@ -48,6 +49,7 @@ export const StudentRoutes = () => {
       <Route path="simulados/resultado/:id" element={<ExamResults />} />
       <Route path="configuracoes" element={<Settings />} />
       <Route path="planos/:id" element={<PlanDetails />} />
+      <Route path="mensagens" element={<StudentMessages />} />
     </Routes>
   );
 };

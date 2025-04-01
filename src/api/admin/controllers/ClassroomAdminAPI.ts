@@ -158,6 +158,28 @@ export class ClassroomAdminAPI {
       throw error;
     }
   }
+
+  /**
+   * Edits courses for a classroom (admin only)
+   * @param id Classroom ID
+   * @param classroom Classroom data with course updates
+   * @returns Promise containing updated classroom DTO
+   */
+  static async editCourseClassrooms(id: string, classroom: ClassroomCreateDTO): Promise<ClassroomResponseDTO> {
+    try {
+      const response = await api.put<ClassroomResponseDTO>(
+        `/api/admin/classrooms/${id}/courses`,
+        {
+          ...classroom,
+          studentIds: Array.from(classroom.studentIds) // Convert Set to Array for JSON
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error editing classroom courses:', error);
+      throw error;
+    }
+  }
 }
 
 // Usage example:

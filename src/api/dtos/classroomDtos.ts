@@ -5,6 +5,7 @@ export interface ClassroomCreateDTO {
   name: string;
   studentIds: Set<string>;
   mentorId: string;
+  courseIds?: string[];
 }
 
 export interface ClassroomResponseDTO {
@@ -12,6 +13,7 @@ export interface ClassroomResponseDTO {
   name: string;
   students: Set<UserResponseDTO>;
   mentor: UserResponseDTO;
+  courses: ClassroomCourseReturnDTO[];
 }
 
 // Interface for ClassroomAccessToken (assuming basic structure)
@@ -20,4 +22,9 @@ export interface ClassroomAccessToken {
   token: string; // Assuming there's a token string
   classroomId: string; // Assuming reference to classroom
   // Add other fields as needed when actual entity structure is known
+}
+
+export interface ClassroomCourseReturnDTO {
+  id: string;
+  name: string;
 }

@@ -18,33 +18,41 @@ import {
 } from "@/components/ui/select"
 import { useState, useEffect } from 'react'
 import { UserAdminAPI } from '@/api/admin/controllers/UserAdminAPI'
-import { UserResponseDTO, UserRole } from "@/api/dtos/userDtos"
+import { CourseAdminAPI } from '@/api/admin/controllers/CourseAdminAPI'
+import { UserResponseDTO } from "@/api/dtos/userDtos"
+import { CourseResponseDTO } from "@/api/dtos/courseDtos"
 
 interface NewClassDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (e: React.FormEvent, values: { name: string; mentorId: string }) => void
+  onSubmit: (e: React.FormEvent, values: { name: string; mentorId: string; courseIds: string[] }) => void
 }
 
 export function NewClassDialog({ open, onOpenChange, onSubmit }: NewClassDialogProps) {
   const [mentors, setMentors] = useState<UserResponseDTO[]>([])
+  const [courses, setCourses] = useState<CourseResponseDTO[]>([])
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    const fetchMentors = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true)
-        const mentorUsers = await UserAdminAPI.getAllMentors()
+        const [mentorUsers, courseData] = await Promise.all([
+          UserAdminAPI.getAllMentors(),
+          CourseAdminAPI.getAllCourses()
+        ])
         setMentors(mentorUsers)
+        setCourses(courseData)
       } catch (error) {
-        console.error('Failed to fetch mentors:', error)
+        console.error('Failed to fetch data:', error)
       } finally {
         setLoading(false)
       }
     }
 
     if (open) {
-      fetchMentors()
+      fetchData()
     }
   }, [open])
 
@@ -54,8 +62,17 @@ export function NewClassDialog({ open, onOpenChange, onSubmit }: NewClassDialogP
     const values = {
       name: formData.get('name') as string,
       mentorId: formData.get('mentor') as string,
+      courseIds: selectedCourses
     }
     onSubmit(e, values)
+  }
+
+  const handleCourseToggle = (courseId: string) => {
+    setSelectedCourses(prev => 
+      prev.includes(courseId)
+        ? prev.filter(id => id !== courseId)
+        : [...prev, courseId]
+    )
   }
 
   return (
@@ -90,6 +107,22 @@ export function NewClassDialog({ open, onOpenChange, onSubmit }: NewClassDialogP
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Cursos</Label>
+            <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+              {courses.map((course) => (
+                <div key={course.id} className="flex items-center space-x-2 py-1">
+                  <input
+                    type="checkbox"
+                    id={`course-${course.id}`}
+                    checked={selectedCourses.includes(course.id)}
+                    onChange={() => handleCourseToggle(course.id)}
+                  />
+                  <label htmlFor={`course-${course.id}`}>{course.name}</label>
+                </div>
+              ))}
+            </div>
           </div>
           <DialogFooter>
             <Button 
