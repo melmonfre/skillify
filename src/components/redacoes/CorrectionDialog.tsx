@@ -1,10 +1,13 @@
-
+// src/components/redacoes/CorrectionDialog.tsx
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
+import { EssayExecutionMentorAPI } from "@/api/mentor/controllers/EssayExecutionMentorAPI"
+import { EssayExecutionResponseDTO } from "@/api/dtos/essayExecutionDtos"
 
 interface CorrectionForm {
   generalComments: string
@@ -20,7 +23,8 @@ interface CorrectionDialogProps {
   onOpenChange: (open: boolean) => void
   form: CorrectionForm
   onFormChange: (form: CorrectionForm) => void
-  onSubmit: () => void
+  onSubmit: (form: CorrectionForm) => void
+  executionId: string
 }
 
 export const CorrectionDialog = ({ 
@@ -28,8 +32,33 @@ export const CorrectionDialog = ({
   onOpenChange, 
   form, 
   onFormChange,
-  onSubmit 
+  onSubmit,
+  executionId
 }: CorrectionDialogProps) => {
+  const [execution, setExecution] = useState<EssayExecutionResponseDTO | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (open && executionId) {
+      const fetchExecution = async () => {
+        try {
+          setLoading(true)
+          const data = await EssayExecutionMentorAPI.getEssayExecutionById(executionId)
+          setExecution(data)
+        } catch (error) {
+          console.error('Failed to fetch essay execution:', error)
+        } finally {
+          setLoading(false)
+        }
+      }
+      fetchExecution()
+    }
+  }, [open, executionId])
+
+  const handleSubmit = () => {
+    onSubmit(form)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl bg-slate-900 border-slate-800">
@@ -40,9 +69,15 @@ export const CorrectionDialog = ({
           <div className="space-y-2">
             <Label className="text-white">Texto do Aluno</Label>
             <Card className="p-4 bg-white/5 border-slate-800">
-              <p className="text-sm text-slate-400 whitespace-pre-line">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
-              </p>
+              {loading ? (
+                <p className="text-sm text-slate-400">Carregando...</p>
+              ) : execution ? (
+                <p className="text-sm text-slate-400 whitespace-pre-line">
+                  {execution.text}
+                </p>
+              ) : (
+                <p className="text-sm text-slate-400">Erro ao carregar o texto</p>
+              )}
             </Card>
           </div>
 
@@ -64,6 +99,7 @@ export const CorrectionDialog = ({
                 id="structure"
                 type="number"
                 max="200"
+                min="0"
                 value={form.structureScore}
                 onChange={(e) => onFormChange({ ...form, structureScore: e.target.value })}
                 className="bg-white/5 border-slate-800 text-white"
@@ -75,6 +111,7 @@ export const CorrectionDialog = ({
                 id="argumentation"
                 type="number"
                 max="200"
+                min="0"
                 value={form.argumentationScore}
                 onChange={(e) => onFormChange({ ...form, argumentationScore: e.target.value })}
                 className="bg-white/5 border-slate-800 text-white"
@@ -86,6 +123,7 @@ export const CorrectionDialog = ({
                 id="proposal"
                 type="number"
                 max="200"
+                min="0"
                 value={form.proposalScore}
                 onChange={(e) => onFormChange({ ...form, proposalScore: e.target.value })}
                 className="bg-white/5 border-slate-800 text-white"
@@ -97,6 +135,7 @@ export const CorrectionDialog = ({
                 id="language"
                 type="number"
                 max="200"
+                min="0"
                 value={form.languageScore}
                 onChange={(e) => onFormChange({ ...form, languageScore: e.target.value })}
                 className="bg-white/5 border-slate-800 text-white"
@@ -108,6 +147,7 @@ export const CorrectionDialog = ({
                 id="competency"
                 type="number"
                 max="200"
+                min="0"
                 value={form.competencyScore}
                 onChange={(e) => onFormChange({ ...form, competencyScore: e.target.value })}
                 className="bg-white/5 border-slate-800 text-white"
@@ -124,7 +164,7 @@ export const CorrectionDialog = ({
             Cancelar
           </Button>
           <Button 
-            onClick={onSubmit}
+            onClick={handleSubmit}
             className="bg-purple-600 hover:bg-purple-700 text-white border-none"
           >
             Enviar Correção

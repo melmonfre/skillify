@@ -8,6 +8,7 @@ import { CourseChat } from "@/components/CourseChat"
 import { MessageStudentAPI } from "@/api/student/controllers/MessageStudentAPI"
 import { MessageResponseDTO } from "@/api/dtos/messageDtos"
 import { UserResponseDTO, UserRole } from "@/api/dtos/userDtos"
+import { CourseChatStudent } from "@/components/CourseChatStudent"
 
 interface MentorChat {
   id: string
@@ -276,10 +277,10 @@ const StudentMessages = () => {
         <Card className="md:col-span-2 bg-gradient-to-br from-slate-900 to-slate-950 border-slate-800">
           {selectedMentor && studentId ? (
             <div className="h-[600px]">
-              <CourseChat 
-                studentId={studentId}
-                onSendMessage={handleSendMessage}
-              />
+<CourseChatStudent
+        mentorId={selectedMentor.id} // Pass mentorId instead of studentId
+        onSendMessage={handleSendMessage}
+      />
             </div>
           ) : (
             <div className="h-[600px] flex flex-col items-center justify-center text-slate-400">

@@ -1,17 +1,52 @@
-
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Calendar, MessageSquare, Star, Users } from "lucide-react"
-import { availableMentors } from "@/data/mock"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
+import { useEffect, useState } from "react"
+import { UserResponseDTO } from '@/api/dtos/userDtos' // Updated import path
+import { UserStudentAPI } from "@/api/student/controllers/UserStudentAPI"
+
+// Mock data for fields not in UserResponseDTO
+const mockMentorDetails = {
+  avatar: "https://github.com/shadcn.png", // Default avatar
+  rating: "4.8",
+  studentsCount: "50+ alunos",
+  nextAvailability: "Hoje, 15:00",
+  responseTime: "Responde em até 2 horas"
+}
 
 const Mentoring = () => {
   const navigate = useNavigate()
+  const [mentors, setMentors] = useState<UserResponseDTO[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchMentors = async () => {
+      try {
+        const availableMentors = await UserStudentAPI.findAvailableMentors()
+        setMentors(availableMentors)
+      } catch (error) {
+        toast.error("Erro ao carregar mentores disponíveis")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchMentors()
+  }, [])
 
   const handleScheduleMentoring = (mentorId: string) => {
     navigate(`/mentoria/agendar/${mentorId}`)
     toast.success("Redirecionando para agendamento...")
+  }
+
+  if (loading) {
+    return (
+      <div className="container py-8">
+        <p>Carregando mentores...</p>
+      </div>
+    )
   }
 
   return (
@@ -24,19 +59,20 @@ const Mentoring = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {availableMentors.map((mentor) => (
+        {mentors.map((mentor) => (
           <Card key={mentor.id} className="flex flex-col">
             <CardHeader>
               <div className="flex items-center gap-4">
                 <img
-                  src={mentor.avatar}
+                  src={mockMentorDetails.avatar}
                   alt={mentor.name}
                   className="w-16 h-16 rounded-full object-cover"
                 />
                 <div>
                   <CardTitle className="text-xl">{mentor.name}</CardTitle>
+                  {/* Using biography as specialty since specialty isn't in DTO */}
                   <p className="text-sm text-muted-foreground">
-                    {mentor.specialty}
+                    {mentor.biography.substring(0, 50) + "..."}
                   </p>
                 </div>
               </div>
@@ -45,22 +81,22 @@ const Mentoring = () => {
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-1">
                   <Star className="w-4 h-4 text-yellow-400" />
-                  <span>{mentor.rating}</span>
+                  <span>{mockMentorDetails.rating}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Users className="w-4 h-4 text-muted-foreground" />
-                  <span>50+ alunos</span>
+                  <span>{mockMentorDetails.studentsCount}</span>
                 </div>
               </div>
 
               <div className="space-y-2 flex-grow">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="w-4 h-4" />
-                  <span>Próxima disponibilidade: Hoje, 15:00</span>
+                  <span>Próxima disponibilidade: {mockMentorDetails.nextAvailability}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <MessageSquare className="w-4 h-4" />
-                  <span>Responde em até 2 horas</span>
+                  <span>{mockMentorDetails.responseTime}</span>
                 </div>
               </div>
 

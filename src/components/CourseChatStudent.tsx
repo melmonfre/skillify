@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageCircle, Send } from "lucide-react";
-import { MessageMentorAPI } from "@/api/mentor/controllers/MessageMentorAPI";
+import { MessageStudentAPI } from "@/api/student/controllers/MessageStudentAPI";
 import { MessageResponseDTO } from "@/api/dtos/messageDtos";
 
-interface CourseChatMentorProps {
-  studentId: string;
+interface CourseChatStudentProps {
+  mentorId: string;
   onSendMessage: (content: string) => void;
 }
 
@@ -19,39 +19,35 @@ interface ChatMessage {
   timestamp: string;
 }
 
-export function CourseChat({ studentId, onSendMessage }: CourseChatMentorProps) {
+export function CourseChatStudent({ mentorId, onSendMessage }: CourseChatStudentProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
-  const mentorId = localStorage.getItem("userId");
+  const studentId = localStorage.getItem("userId");
 
   useEffect(() => {
     const fetchMessages = async () => {
       try {
         setLoading(true);
-        // Fetch both sent and received messages
-        const receivedMessages = await MessageMentorAPI.getReceivedMessages();
-        const sentMessages = await MessageMentorAPI.getSentMessages();
-        // Combine and filter messages related to the specific student
+        // Fetch all messages (sent and received) for the student
+        const receivedMessages = await MessageStudentAPI.getReceivedMessages();
+        const sentMessages = await MessageStudentAPI.getSentMessages();
         const allMessages = [...receivedMessages, ...sentMessages].filter(
-          (msg) => msg.remetente.id === studentId || msg.destinatario.id === studentId
+          (msg) => msg.remetente.id === mentorId || msg.destinatario.id === mentorId
         );
 
         const chatMessages: ChatMessage[] = allMessages.map((msg: MessageResponseDTO) => ({
-          id: Date.now().toString(), // Use real ID if available
+          id: Date.now().toString(),
           user: {
-            name: msg.remetente.id === mentorId ? "Você" : msg.remetente.name,
+            name: msg.remetente.id === studentId ? "Você" : msg.remetente.name,
             avatar: undefined,
           },
           content: msg.content,
-          timestamp: new Date( Date.now()).toLocaleTimeString([], {
+          timestamp: new Date(Date.now()).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           }),
         }));
-
-        // Sort messages by timestamp to ensure chronological order
-        chatMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
         setMessages(chatMessages);
       } catch (error) {
@@ -61,14 +57,14 @@ export function CourseChat({ studentId, onSendMessage }: CourseChatMentorProps) 
       }
     };
 
-    if (studentId && mentorId) {
+    if (mentorId && studentId) {
       fetchMessages();
     }
-  }, [studentId, mentorId]);
+  }, [mentorId, studentId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !mentorId) return;
+    if (!newMessage.trim() || !studentId) return;
 
     const optimisticMessage: ChatMessage = {
       id: Date.now().toString(),
@@ -93,7 +89,7 @@ export function CourseChat({ studentId, onSendMessage }: CourseChatMentorProps) 
       <div className="p-4 border-b">
         <h3 className="text-lg font-semibold flex items-center gap-2">
           <MessageCircle className="w-5 h-5" />
-          Chat com Aluno
+          Chat com Mentor
         </h3>
       </div>
       <ScrollArea className="flex-1 p-4">

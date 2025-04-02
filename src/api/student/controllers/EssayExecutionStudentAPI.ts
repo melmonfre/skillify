@@ -1,48 +1,64 @@
-// src/api/student/controllers/EssayCorrectionStudentAPI.ts
+// src/api/student/controllers/EssayExecutionStudentAPI.ts
+import { EssayExecutionCreateDTO, EssayExecutionResponseDTO } from '@/api/dtos/essayExecutionDtos';
 import api from '../../api';
-import { EssayCorrectionResponseDTO } from '../../dtos/essayCorrectionDtos';
 
-export class EssayCorrectionStudentAPI {
+export class EssayExecutionStudentAPI {
   /**
-   * Gets all essay corrections for the authenticated student (student only)
-   * @returns Promise containing array of essay correction DTOs
+   * Gets all essay executions for the authenticated student
+   * @returns Promise containing array of essay execution DTOs
    */
-  static async getAllEssayCorrections(): Promise<EssayCorrectionResponseDTO[]> {
+  static async getAllMyEssayExecutions(): Promise<EssayExecutionResponseDTO[]> {
     try {
-      const response = await api.get<EssayCorrectionResponseDTO[]>('/api/student/essay-corrections');
+      const response = await api.get<EssayExecutionResponseDTO[]>('/api/student/essay-executions');
       return response.data;
     } catch (error) {
-      console.error('Error fetching all essay corrections:', error);
+      console.error('Error fetching student essay executions:', error);
       throw error;
     }
   }
 
   /**
-   * Gets an essay correction by ID for the authenticated student (student only)
-   * @param id Essay correction ID
-   * @returns Promise containing essay correction DTO
+   * Gets a specific essay execution by ID for the authenticated student
+   * @param id Essay execution ID
+   * @returns Promise containing essay execution DTO
    */
-  static async getEssayCorrectionById(id: string): Promise<EssayCorrectionResponseDTO> {
+  static async getEssayExecutionById(id: string): Promise<EssayExecutionResponseDTO> {
     try {
-      const response = await api.get<EssayCorrectionResponseDTO>(`/api/student/essay-corrections/${id}`);
+      const response = await api.get<EssayExecutionResponseDTO>(`/api/student/essay-executions/${id}`);
       return response.data;
     } catch (error) {
-      console.error('Error fetching essay correction by ID:', error);
+      console.error('Error fetching essay execution by ID:', error);
       throw error;
     }
   }
 
   /**
-   * Gets an essay correction by execution ID for the authenticated student (student only)
-   * @param executionId Essay execution ID
-   * @returns Promise containing essay correction DTO
+   * Creates a new essay execution for the authenticated student
+   * @param execution Essay execution creation data
+   * @returns Promise containing created essay execution DTO
    */
-  static async getEssayCorrectionByExecution(executionId: string): Promise<EssayCorrectionResponseDTO> {
+  static async createEssayExecution(execution: EssayExecutionCreateDTO): Promise<EssayExecutionResponseDTO> {
     try {
-      const response = await api.get<EssayCorrectionResponseDTO>(`/api/student/essay-corrections/essay-execution/${executionId}`);
+      const response = await api.post<EssayExecutionResponseDTO>('/api/student/essay-executions', execution);
       return response.data;
     } catch (error) {
-      console.error('Error fetching essay correction by execution ID:', error);
+      console.error('Error creating essay execution:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Updates an existing essay execution for the authenticated student
+   * @param id Essay execution ID
+   * @param execution Essay execution update data
+   * @returns Promise containing updated essay execution DTO
+   */
+  static async updateEssayExecution(id: string, execution: EssayExecutionCreateDTO): Promise<EssayExecutionResponseDTO> {
+    try {
+      const response = await api.put<EssayExecutionResponseDTO>(`/api/student/essay-executions/${id}`, execution);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating essay execution:', error);
       throw error;
     }
   }
@@ -50,21 +66,34 @@ export class EssayCorrectionStudentAPI {
 
 // Usage example:
 /*
-async function handleEssayCorrectionStudentOperations() {
+async function handleEssayExecutionOperations() {
   try {
-    // Get all essay corrections
-    const allCorrections = await EssayCorrectionStudentAPI.getAllEssayCorrections();
-    console.log('All essay corrections:', allCorrections);
+    // Get all essay executions
+    const executions = await EssayExecutionStudentAPI.getAllMyEssayExecutions();
+    console.log('My essay executions:', executions);
 
-    // Get specific essay correction
-    const correction = await EssayCorrectionStudentAPI.getEssayCorrectionById("correction123");
-    console.log('Essay correction:', correction);
+    // Get specific essay execution
+    const execution = await EssayExecutionStudentAPI.getEssayExecutionById("execution123");
+    console.log('Essay execution:', execution);
 
-    // Get essay correction by execution
-    const correctionByExecution = await EssayCorrectionStudentAPI.getEssayCorrectionByExecution("execution456");
-    console.log('Essay correction by execution:', correctionByExecution);
+    // Create new essay execution
+    const newExecution: EssayExecutionCreateDTO = {
+      studentId: "student123", // This might be handled by backend authentication
+      essayId: "essay456",
+      text: "This is my essay text about technology impacts..."
+    };
+    const createdExecution = await EssayExecutionStudentAPI.createEssayExecution(newExecution);
+    console.log('Created execution:', createdExecution);
+
+    // Update essay execution
+    const updatedExecution = await EssayExecutionStudentAPI.updateEssayExecution(createdExecution.id, {
+      ...newExecution,
+      text: "Updated essay text about technology impacts..."
+    });
+    console.log('Updated execution:', updatedExecution);
+
   } catch (error) {
-    console.error('Essay correction student operation failed:', error);
+    console.error('Essay execution operation failed:', error);
   }
 }
 */

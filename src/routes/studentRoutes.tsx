@@ -41,7 +41,7 @@ export const StudentRoutes = () => {
       <Route path="mentoria/agendar/:id" element={<ScheduleMentoring />} />
       <Route path="redacoes" element={<Essays />} />
       <Route path="redacoes/nova" element={<NewEssay />} />
-      <Route path="redacoes/editor" element={<EssayEditor />} />
+      <Route path="redacoes/editor/:id" element={<EssayEditor />} />
       <Route path="redacoes/correcao/:id" element={<EssayCorrection />} />
       <Route path="simulados" element={<MockExams />} />
       <Route path="simulados/novo" element={<NewExam />} />

@@ -1,17 +1,25 @@
-// src/components/mentor/MentorRedacoes.tsx
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Plus } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { EssayCard } from "@/components/redacoes/EssayCard"
+import { EssayAssignmentCard } from "@/components/redacoes/EssayAssignmentCard"
+import { EssayCorrectionCard } from "@/components/redacoes/EssayCorrectionCard"
+import { CorrectedEssayCard } from "@/components/redacoes/CorrectedEssayCard"
 import { CorrectionDialog } from "@/components/redacoes/CorrectionDialog"
+import { EssayDetailsDialog } from "@/components/redacoes/EssayDetailsDialog"
 import { NewEssayDialog } from "@/components/redacoes/NewEssayDialog"
+import { CorrectionDetailsDialog } from "@/components/redacoes/CorrectionDetailsDialog"
 import { EssayMentorAPI } from "@/api/mentor/controllers/EssayMentorAPI"
+import { EssayExecutionMentorAPI } from "@/api/mentor/controllers/EssayExecutionMentorAPI"
+import { EssayCorrectionMentorAPI } from "@/api/mentor/controllers/EssayCorrectionMentorAPI"
 import { EssayCreateDTO, EssayResponseDTO } from "@/api/dtos/essayDtos"
+import { EssayExecutionResponseDTO } from "@/api/dtos/essayExecutionDtos"
+import { EssayCorrectionResponseDTO, EssayCorrectionCreateDTO, EssayConquest } from "@/api/dtos/essayCorrectionDtos"
 import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 interface CorrectionForm {
   generalComments: string
@@ -27,12 +35,19 @@ const MentorRedacoes = () => {
   const { toast } = useToast()
   const [isCorrectionOpen, setIsCorrectionOpen] = useState(false)
   const [isNewEssayOpen, setIsNewEssayOpen] = useState(false)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [isCorrectionDetailsOpen, setIsCorrectionDetailsOpen] = useState(false)
+  const [selectedEssayExecution, setSelectedEssayExecution] = useState<string>("")
   const [selectedEssay, setSelectedEssay] = useState<string>("")
+  const [selectedCorrectionId, setSelectedCorrectionId] = useState<string>("")
   const [essays, setEssays] = useState<EssayResponseDTO[]>([])
+  const [essayExecutions, setEssayExecutions] = useState<EssayExecutionResponseDTO[]>([])
+  const [correctedEssays, setCorrectedEssays] = useState<EssayCorrectionResponseDTO[]>([])
   const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("all")
+
   const [correctionForm, setCorrectionForm] = useState<CorrectionForm>({
     generalComments: "",
     structureScore: "",
@@ -46,12 +61,23 @@ const MentorRedacoes = () => {
     const fetchData = async () => {
       try {
         setLoading(true)
+
         const classroomData = await ClassroomMentorAPI.getAllClassrooms()
         setClassrooms(classroomData.map(c => ({ id: c.id, name: c.name })))
-        if (classroomData.length > 0) {
-          const essayData = await EssayMentorAPI.getEssaysByClassroom(classroomData[0].id)
-          setEssays(essayData)
+
+        const allEssays: EssayResponseDTO[] = []
+        for (const classroom of classroomData) {
+          const classroomEssays = await EssayMentorAPI.getEssaysByClassroom(classroom.id)
+          allEssays.push(...classroomEssays)
         }
+        setEssays(allEssays)
+
+        const executionData = await EssayExecutionMentorAPI.getAllEssayExecutions()
+        setEssayExecutions(executionData)
+
+        const correctionData = await EssayCorrectionMentorAPI.getAllEssayCorrections()
+        setCorrectedEssays(correctionData)
+
       } catch (error) {
         toast({
           title: "Erro",
@@ -65,17 +91,58 @@ const MentorRedacoes = () => {
     fetchData()
   }, [toast])
 
-  const handleStartCorrection = (essayId: string) => {
-    setSelectedEssay(essayId)
+  const handleStartCorrection = (executionId: string) => {
+    setSelectedEssayExecution(executionId)
+    setCorrectionForm({
+      generalComments: "",
+      structureScore: "",
+      argumentationScore: "",
+      proposalScore: "",
+      languageScore: "",
+      competencyScore: ""
+    })
     setIsCorrectionOpen(true)
   }
 
-  const handleSubmitCorrection = () => {
-    toast({
-      title: "Correção enviada",
-      description: "A correção foi salva com sucesso!"
-    })
-    setIsCorrectionOpen(false)
+  const handleSubmitCorrection = async (form: CorrectionForm) => {
+    try {
+      const execution = essayExecutions.find(e => e.id === selectedEssayExecution)
+      if (!execution) {
+        throw new Error("Essay execution not found")
+      }
+
+      const mentorId = localStorage.getItem("userId") // Replace with actual mentor ID from auth
+
+      const createDTO: EssayCorrectionCreateDTO = {
+        essayId: execution.essay.id,
+        mentorId: mentorId,
+        essayExecutionId: selectedEssayExecution,
+        estruturaCoesaoComentario: form.generalComments,
+        argumentacaoComentario: form.generalComments,
+        conquistas: [EssayConquest.ARGUMENTACAO_SOLIDA],
+        competencia1Score: parseInt(form.structureScore) || 0,
+        competencia2Score: parseInt(form.argumentationScore) || 0,
+        competencia3Score: parseInt(form.proposalScore) || 0,
+        competencia4Score: parseInt(form.languageScore) || 0,
+        competencia5Score: parseInt(form.competencyScore) || 0,
+      }
+
+      const newCorrection = await EssayCorrectionMentorAPI.createEssayCorrection(createDTO)
+      setCorrectedEssays([...correctedEssays, newCorrection])
+      
+      toast({
+        title: "Correção enviada",
+        description: "A correção foi salva com sucesso!"
+      })
+      setIsCorrectionOpen(false)
+    } catch (error) {
+      toast({
+        title: "Erro ao enviar correção",
+        description: "Não foi possível salvar a correção",
+        variant: "destructive",
+      })
+      console.error('Error submitting correction:', error)
+    }
   }
 
   const handleCreateEssay = async (values: EssayCreateDTO) => {
@@ -96,8 +163,18 @@ const MentorRedacoes = () => {
     }
   }
 
-  const handleViewCorrection = (essayId: string) => {
-    navigate(`/redacoes/correcao/${essayId}`)
+  const handleViewDetails = (essayId: string) => {
+    setSelectedEssay(essayId)
+    setIsDetailsOpen(true)
+    toast({
+      title: "Visualizando detalhes",
+      description: "Carregando detalhes da redação..."
+    })
+  }
+
+  const handleViewCorrection = (correctionId: string) => {
+    setSelectedCorrectionId(correctionId)
+    setIsCorrectionDetailsOpen(true)
     toast({
       title: "Visualizando correção",
       description: "Carregando detalhes da correção..."
@@ -106,6 +183,19 @@ const MentorRedacoes = () => {
 
   const filteredEssays = essays.filter(essay =>
     essay.theme.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const filteredExecutions = essayExecutions.filter(execution => {
+    const isCorrected = correctedEssays.some(c => c.essayExecution.id === execution.id)
+    return !isCorrected && (
+      execution.essay.theme.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      execution.student.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  })
+
+  const filteredCorrections = correctedEssays.filter(correction =>
+    correction.essay.theme.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    correction.essayExecution.student.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   if (loading) {
@@ -144,35 +234,75 @@ const MentorRedacoes = () => {
         </div>
 
         <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-[200px] grid-cols-2 bg-white/5">
+          <TabsList className="grid w-[300px] grid-cols-3 bg-white/5">
             <TabsTrigger value="all" className="text-white data-[state=active]:bg-purple-600">
               Todas
             </TabsTrigger>
             <TabsTrigger value="correct" className="text-white data-[state=active]:bg-purple-600">
               Corrigir
             </TabsTrigger>
+            <TabsTrigger value="corrected" className="text-white data-[state=active]:bg-purple-600">
+              Corrigidas
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="all">
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-4">
               {filteredEssays.map(essay => (
-                <EssayCard 
+                <EssayAssignmentCard 
                   key={essay.id}
                   title={essay.theme}
-                  student={essay.classroom.students.values().next().value?.name || "Estudante"}
-                  status="pending"
-                  date={`Prazo: ${new Date(essay.maxDate).toLocaleDateString()}`}
-                  onCorrect={() => handleStartCorrection(essay.id)}
-                  onView={() => handleViewCorrection(essay.id)}
+                  classroom={essay.classroom.name}
+                  deadline={new Date(essay.maxDate).toLocaleDateString()}
+                  onView={() => handleViewDetails(essay.id)}
                 />
               ))}
             </div>
           </TabsContent>
           
           <TabsContent value="correct">
-            <div className="mt-4 text-slate-400">
-              {/* Empty state for essays to be corrected */}
-              <p>Nenhuma redação para corrigir no momento.</p>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-4">
+              {filteredExecutions.length > 0 ? (
+                filteredExecutions.map(execution => (
+                  <EssayCorrectionCard 
+                    key={execution.id}
+                    title={execution.essay.theme}
+                    student={execution.student.name}
+                    status="pending"
+                    submissionDate={new Date(Date.now()).toLocaleDateString()}
+                    deadline={new Date(execution.essay.maxDate).toLocaleDateString()}
+                    essayId={execution.essay.id}
+                    onCorrect={() => handleStartCorrection(execution.id)}
+                    onView={() => handleViewDetails(execution.essay.id)}
+                  />
+                ))
+              ) : (
+                <div className="mt-4 text-slate-400">
+                  <p>Nenhuma redação para corrigir no momento.</p>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="corrected">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-4">
+              {filteredCorrections.length > 0 ? (
+                filteredCorrections.map(correction => (
+                  <CorrectedEssayCard
+                    key={correction.id}
+                    title={correction.essay.theme}
+                    student={correction.essayExecution.student.name}
+                    correctionDate={new Date(Date.now()).toLocaleDateString()}
+                    essayId={correction.essay.id}
+                    correctionId={correction.id}
+                    onView={() => handleViewCorrection(correction.id)}
+                  />
+                ))
+              ) : (
+                <div className="mt-4 text-slate-400">
+                  <p>Nenhuma redação corrigida no momento.</p>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -184,6 +314,13 @@ const MentorRedacoes = () => {
         form={correctionForm}
         onFormChange={setCorrectionForm}
         onSubmit={handleSubmitCorrection}
+        executionId={selectedEssayExecution}
+      />
+
+      <EssayDetailsDialog
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        essayId={selectedEssay}
       />
 
       <NewEssayDialog
@@ -191,6 +328,12 @@ const MentorRedacoes = () => {
         onOpenChange={setIsNewEssayOpen}
         onSubmit={handleCreateEssay}
         classrooms={classrooms}
+      />
+
+      <CorrectionDetailsDialog
+        open={isCorrectionDetailsOpen}
+        onOpenChange={setIsCorrectionDetailsOpen}
+        correctionId={selectedCorrectionId}
       />
     </div>
   )

@@ -15,7 +15,7 @@ export interface EssayCorrectionCreateDTO {
   essayExecutionId: string;
   estruturaCoesaoComentario: string;
   argumentacaoComentario: string;
-  conquistas: Set<EssayConquest>;
+  conquistas: EssayConquest[]
   competencia1Score: number;
   competencia2Score: number;
   competencia3Score: number;
@@ -30,7 +30,7 @@ export interface EssayCorrectionResponseDTO {
   essayExecution: EssayExecutionResponseDTO;
   estruturaCoesaoComentario: string;
   argumentacaoComentario: string;
-  conquistas: Set<EssayConquest>;
+  conquistas: EssayConquest[]
   competencia1Score: number;
   competencia2Score: number;
   competencia3Score: number;
