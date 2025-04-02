@@ -1,20 +1,31 @@
-// Updated SimuladoCard to accept PracticeResponseDTO
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, Clock, Target, BarChart } from "lucide-react"
+import { Users, Clock, Target, BarChart, Eye, Edit2 } from "lucide-react"
 import { PracticeResponseDTO } from "@/api/dtos/practiceDtos"
 
 interface SimuladoCardProps {
   simulado?: PracticeResponseDTO
   onViewResults: () => void
+  onAddQuestion: () => void
+  onViewSimulado: () => void
+  onEditQuestions: () => void
 }
 
-export function SimuladoCard({ simulado, onViewResults }: SimuladoCardProps) {
-  // Default mock values if no simulado is provided
+export function SimuladoCard({ 
+  simulado, 
+  onViewResults, 
+  onViewSimulado, 
+  onEditQuestions 
+}: SimuladoCardProps) {
   const title = simulado?.title || "Simulado ENEM 2024"
   const questions = simulado?.numberOfQuestions || 90
   const maxDate = simulado?.maximumDate || new Date().toISOString()
+  
+  // Improved question check
+  const hasQuestions = simulado?.questions ? 
+    (simulado.questions.size > 0 || simulado.numberOfQuestions > 0) : 
+    false
 
   return (
     <Card className="group overflow-hidden bg-gradient-to-br from-black/40 to-black/20 border-slate-800 hover:border-slate-700 transition-all duration-300">
@@ -43,7 +54,7 @@ export function SimuladoCard({ simulado, onViewResults }: SimuladoCardProps) {
             </div>
           </div>
           
-          <div className="pt-4">
+          <div className="space-y-2 pt-4">
             <Button
               variant="outline"
               onClick={onViewResults}
@@ -51,6 +62,30 @@ export function SimuladoCard({ simulado, onViewResults }: SimuladoCardProps) {
             >
               <BarChart className="w-4 h-4 mr-2" />
               Ver Resultados Parciais
+            </Button>
+            <Button
+              variant="outline"
+              onClick={onEditQuestions}
+              className="w-full bg-white/5 border-slate-800 hover:bg-white/10 hover:border-slate-700 text-white"
+            >
+              <Edit2 className="w-4 h-4 mr-2" />
+              Editar Questões
+            </Button>
+            <Button
+              variant="outline"
+              onClick={hasQuestions ? onViewSimulado : undefined}
+              className={`w-full bg-white/5 border-slate-800 text-white ${
+                hasQuestions 
+                  ? 'hover:bg-white/10 hover:border-slate-700' 
+                  : 'opacity-50 cursor-not-allowed'
+              }`}
+              disabled={!hasQuestions}
+            >
+              <Eye className="w-4 h-4 mr-2" />
+              Ver Simulado
+              {!hasQuestions && (
+                <span className="sr-only">(Adicione questões primeiro)</span>
+              )}
             </Button>
           </div>
         </div>

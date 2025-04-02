@@ -1,29 +1,78 @@
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Clock, Trophy, CheckCircle2, HelpCircle } from "lucide-react"
+import { Clock, Trophy, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
+import { PracticeStudentAPI } from "@/api/student/controllers/PracticeStudentAPI"
+import { PracticeResponseDTO } from "@/api/dtos/practiceDtos"
+import { QuestionResponseDTO } from "@/api/dtos/questionDtos" // Updated import path
 
-const mockExam = {
-  id: "1",
-  title: "Simulado Nacional ENEM 2024",
-  totalQuestions: 90,
-  timeLimit: 180, // minutes
-  xpReward: 500,
-  subjects: ["Matemática", "Português", "Ciências", "Humanas"],
-}
+type UserAnswer = {
+  questionId: string;
+  optionId: string | null;
+};
 
 export default function ExamPage() {
-  const { id } = useParams()
-  const [currentQuestion, setCurrentQuestion] = useState(1)
-  const [timeLeft, setTimeLeft] = useState(mockExam.timeLimit * 60) // in seconds
+  const { id } = useParams<{ id: string }>()
+  const [practice, setPractice] = useState<PracticeResponseDTO | null>(null)
+  const [questions, setQuestions] = useState<QuestionResponseDTO[]>([])
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [timeLeft, setTimeLeft] = useState(0)
   const [isFinished, setIsFinished] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([])
 
-  const progress = (currentQuestion / mockExam.totalQuestions) * 100
+  useEffect(() => {
+    const fetchPractice = async () => {
+      if (!id) return
+      
+      try {
+        setIsLoading(true)
+        const practiceData = await PracticeStudentAPI.getPracticeById(id)
+        setPractice(practiceData)
+        const questionsArray = Array.from(practiceData.questions)
+        setQuestions(questionsArray)
+        setTimeLeft(practiceData.duracao * 60)
+        
+        setUserAnswers(questionsArray.map(question => ({
+          questionId: question.id,
+          optionId: null
+        })))
+      } catch (err) {
+        setError("Failed to load practice. Please try again later.")
+        console.error(err)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchPractice()
+  }, [id])
+
+  useEffect(() => {
+    if (timeLeft <= 0 || isFinished) return
+
+    const timer = setInterval(() => {
+      setTimeLeft(prev => prev - 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [timeLeft, isFinished])
+
+  const handleOptionSelect = (optionId: string) => {
+    setUserAnswers(prev => {
+      const newAnswers = [...prev]
+      newAnswers[currentQuestionIndex] = {
+        questionId: questions[currentQuestionIndex].id,
+        optionId
+      }
+      return newAnswers
+    })
+  }
 
   const handleFinishExam = () => {
     setIsFinished(true)
@@ -31,23 +80,45 @@ export default function ExamPage() {
     window.location.href = `/simulados/resultado/${id}`
   }
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
+
+  if (isLoading) {
+    return <div className="container py-8">Loading practice...</div>
+  }
+
+  if (error) {
+    return <div className="container py-8 text-destructive">{error}</div>
+  }
+
+  if (!practice) {
+    return <div className="container py-8">Practice not found</div>
+  }
+
+  const currentQuestion = questions[currentQuestionIndex]
+  const progress = ((currentQuestionIndex + 1) / questions.length) * 100 // Use questions.length instead of practice.numberOfQuestions
+  const currentAnswer = userAnswers[currentQuestionIndex]?.optionId
+
   return (
     <div className="container py-8 space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">{mockExam.title}</h1>
+          <h1 className="text-2xl font-bold">{practice.title}</h1>
           <p className="text-muted-foreground">
-            Questão {currentQuestion} de {mockExam.totalQuestions}
+            Questão {currentQuestionIndex + 1} de {questions.length} {/* Use questions.length here */}
           </p>
         </div>
         <div className="flex items-center gap-4">
           <Badge variant="outline" className="flex gap-2">
             <Trophy className="w-4 h-4 text-yellow-500" />
-            {mockExam.xpReward} XP
+            {questions.length * 10} XP {/* Use questions.length here */}
           </Badge>
-          <Badge variant="secondary" className="flex gap-2">
+          <Badge variant={timeLeft < 300 ? "destructive" : "secondary"} className="flex gap-2">
             <Clock className="w-4 h-4" />
-            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+            {formatTime(timeLeft)}
           </Badge>
         </div>
       </div>
@@ -56,44 +127,54 @@ export default function ExamPage() {
 
       <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
         <Card className="p-6 space-y-6">
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium">
-              Questão {currentQuestion}
-            </h3>
-            <p className="text-muted-foreground">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-              Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua?
-            </p>
-            <div className="space-y-2">
-              {['A', 'B', 'C', 'D', 'E'].map((option) => (
-                <Button
-                  key={option}
-                  variant="outline"
-                  className="w-full justify-start h-auto py-4 px-6"
-                >
-                  <span className="font-semibold mr-4">{option})</span>
-                  Alternativa {option}
-                </Button>
-              ))}
+          {currentQuestion ? (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">
+                Questão {currentQuestionIndex + 1}
+              </h3>
+              <p className="text-muted-foreground">
+                {currentQuestion.title}
+              </p>
+              <div className="space-y-2">
+                {Array.from(currentQuestion.options).map((option, index) => (
+                  <Button
+                    key={option.id}
+                    variant={
+                      currentAnswer === option.id 
+                        ? "secondary" 
+                        : "outline"
+                    }
+                    className="w-full justify-start h-auto py-4 px-6"
+                    onClick={() => handleOptionSelect(option.id)}
+                  >
+                    <span className="font-semibold mr-4">
+                      {String.fromCharCode(65 + index)})
+                    </span>
+                    {option.title}
+                  </Button>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>Question not available</div>
+          )}
 
           <div className="flex justify-between">
             <Button
               variant="outline"
-              onClick={() => setCurrentQuestion(Math.max(1, currentQuestion - 1))}
-              disabled={currentQuestion === 1}
+              onClick={() => setCurrentQuestionIndex(Math.max(0, currentQuestionIndex - 1))}
+              disabled={currentQuestionIndex === 0}
             >
               Anterior
             </Button>
-            {currentQuestion === mockExam.totalQuestions ? (
+            {currentQuestionIndex === questions.length - 1 ? ( // Use questions.length here
               <Button onClick={handleFinishExam}>
                 Finalizar Simulado
               </Button>
             ) : (
               <Button 
-                onClick={() => setCurrentQuestion(currentQuestion + 1)}
-                disabled={currentQuestion === mockExam.totalQuestions}
+                onClick={() => setCurrentQuestionIndex(currentQuestionIndex + 1)}
+                disabled={currentQuestionIndex === questions.length - 1} // Use questions.length here
               >
                 Próxima
               </Button>
@@ -107,12 +188,18 @@ export default function ExamPage() {
             Questões Respondidas
           </h3>
           <div className="grid grid-cols-5 gap-2">
-            {Array.from({ length: mockExam.totalQuestions }).map((_, idx) => (
+            {questions.map((_, idx) => (
               <Button
                 key={idx}
-                variant={idx + 1 === currentQuestion ? "default" : "outline"}
+                variant={
+                  idx === currentQuestionIndex 
+                    ? "default" 
+                    : userAnswers[idx]?.optionId 
+                      ? "secondary" 
+                      : "outline"
+                }
                 className="w-full h-10"
-                onClick={() => setCurrentQuestion(idx + 1)}
+                onClick={() => setCurrentQuestionIndex(idx)}
               >
                 {idx + 1}
               </Button>

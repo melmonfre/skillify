@@ -132,6 +132,16 @@ export class QuestionMentorAPI {
       throw error;
     }
   }
+
+  static async getSuperAdminQuestions(): Promise<QuestionResponseDTO[]> {
+    try {
+      const response = await api.get<QuestionResponseDTO[]>('/api/mentor/questions/superadmin');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching superadmin questions:', error);
+      throw error;
+    }
+  }
 }
 
 // Usage example:

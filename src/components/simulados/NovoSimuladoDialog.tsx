@@ -1,27 +1,27 @@
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useState, useEffect } from "react"
-import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI"
-import { ClassroomResponseDTO } from "@/api/dtos/classroomDtos"
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect } from "react";
+import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI";
+import { ClassroomResponseDTO } from "@/api/dtos/classroomDtos";
 
 interface SimuladoForm {
-  title: string
-  totalQuestions: string
-  duration: string
-  date: string
-  class: string
-  subjects: string[]
+  title: string;
+  totalQuestions: string;
+  duration: string;
+  date: string;
+  class: string;
+  subjects: string[];
 }
 
 interface NovoSimuladoDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  form: SimuladoForm
-  onFormChange: (form: SimuladoForm) => void
-  onSubmit: () => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  form: SimuladoForm;
+  onFormChange: (form: SimuladoForm) => void;
+  onSubmit: () => void;
 }
 
 export function NovoSimuladoDialog({
@@ -31,27 +31,34 @@ export function NovoSimuladoDialog({
   onFormChange,
   onSubmit
 }: NovoSimuladoDialogProps) {
-  const [classrooms, setClassrooms] = useState<ClassroomResponseDTO[]>([])
-  const [loading, setLoading] = useState(false)
+  const [classrooms, setClassrooms] = useState<ClassroomResponseDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [minDate, setMinDate] = useState("");
 
-  // Fetch classrooms when dialog opens
+  useEffect(() => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setMinDate(tomorrow.toISOString().split('T')[0]);
+  }, []);
+
   useEffect(() => {
     if (open) {
       const fetchClassrooms = async () => {
         try {
-          setLoading(true)
-          const response = await ClassroomMentorAPI.getAllClassrooms()
-          setClassrooms(response)
+          setLoading(true);
+          const response = await ClassroomMentorAPI.getAllClassrooms();
+          setClassrooms(response);
         } catch (error) {
-          console.error('Failed to fetch classrooms:', error)
-          setClassrooms([])
+          console.error('Failed to fetch classrooms:', error);
+          setClassrooms([]);
         } finally {
-          setLoading(false)
+          setLoading(false);
         }
-      }
-      fetchClassrooms()
+      };
+      fetchClassrooms();
     }
-  }, [open])
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -77,6 +84,7 @@ export function NovoSimuladoDialog({
               <Input
                 id="totalQuestions"
                 type="number"
+                min="1"
                 value={form.totalQuestions}
                 onChange={(e) => onFormChange({ ...form, totalQuestions: e.target.value })}
                 placeholder="Ex: 90"
@@ -88,6 +96,7 @@ export function NovoSimuladoDialog({
               <Input
                 id="duration"
                 type="number"
+                min="1"
                 value={form.duration}
                 onChange={(e) => onFormChange({ ...form, duration: e.target.value })}
                 placeholder="Ex: 300"
@@ -97,14 +106,16 @@ export function NovoSimuladoDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="date" className="text-white">Data do Simulado</Label>
+            <Label htmlFor="date" className="text-white">Data Final do Simulado</Label>
             <Input
               id="date"
               type="date"
+              min={minDate}
               value={form.date}
               onChange={(e) => onFormChange({ ...form, date: e.target.value })}
               className="bg-white/5 border-slate-800 text-white"
             />
+            <p className="text-sm text-slate-400">O simulado ficará disponível até esta data</p>
           </div>
 
           <div className="space-y-2">
@@ -148,12 +159,12 @@ export function NovoSimuladoDialog({
           <Button 
             onClick={onSubmit}
             className="bg-purple-600 hover:bg-purple-700 text-white border-none"
-            disabled={loading}
+            disabled={loading || !form.date || !form.duration || !form.title || !form.totalQuestions || !form.class}
           >
             Criar Simulado
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
