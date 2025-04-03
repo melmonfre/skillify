@@ -1,4 +1,4 @@
-// src/api/admin/dtos/essayExecutionDtos.ts
+// src/api/dtos/essayExecutionDtos.ts
 import { UserResponseDTO } from './userDtos';
 import { EssayResponseDTO } from './essayDtos';
 
