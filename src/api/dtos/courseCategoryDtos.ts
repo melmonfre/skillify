@@ -1,9 +1,13 @@
-// src/api/admin/dtos/courseCategoryDtos.ts
+import { UserResponseDTO } from "./userDtos";
+
 export interface CourseCategoryCreateDTO {
-    categoryName: string;
-  }
-  
-  export interface CourseCategoryResponseDTO {
-    id: string; // Assuming BaseResponseDTO provides this
-    categoryName: string;
-  }
+  categoryName: string;
+}
+
+
+
+export interface CourseCategoryResponseDTO {
+  id: string;
+  categoryName: string;
+  user: UserResponseDTO; // Added user information
+}

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, BookPlus, Edit, Trash2, StarIcon, GraduationCap, BookOpen } from "lucide-react"
+import { Search, BookPlus, Edit, Trash2, StarIcon, GraduationCap, BookOpen, Tag } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -40,16 +40,14 @@ import {
 } from "@/components/ui/alert-dialog"
 import { CourseAdminAPI } from "@/api/admin/controllers/CourseAdminAPI"
 import { CourseCategoryAdminAPI } from "@/api/admin/controllers/CourseCategoryAdminAPI"
-// Assuming these DTOs are adjustable; update them accordingly
 import { CourseResponseDTO } from "@/api/dtos/courseDtos"
-import { CourseCategoryResponseDTO } from "@/api/dtos/courseCategoryDtos"
+import { CourseCategoryResponseDTO, CourseCategoryCreateDTO } from "@/api/dtos/courseCategoryDtos"
 
-// Adjusted CourseCreateDTO to use string[] instead of Set<string>
 interface CourseCreateDTO {
   name: string
   description: string
   imageUrl: string
-  categoryIds: string[] // Changed from Set<string> to string[]
+  categoryIds: string[]
   level: string
   duration: number
   creatorId: string
@@ -62,6 +60,8 @@ const AdminCourses = () => {
   const [isNewCourseOpen, setIsNewCourseOpen] = useState(false)
   const [isEditCourseOpen, setIsEditCourseOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false)
+  const [newCategoryName, setNewCategoryName] = useState("")
   const [selectedCourse, setSelectedCourse] = useState<CourseResponseDTO | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -101,10 +101,10 @@ const AdminCourses = () => {
       name: formData.get("title") as string,
       description: formData.get("description") as string,
       imageUrl: formData.get("imageUrl") as string || "",
-      categoryIds: selectedCategories, // Directly use the array
+      categoryIds: selectedCategories,
       level: formData.get("level") as string,
       duration: Number(formData.get("duration")),
-      creatorId: localStorage.getItem("userId")
+      creatorId: localStorage.getItem("userId") || ""
     }
 
     try {
@@ -127,7 +127,7 @@ const AdminCourses = () => {
       name: formData.get("editTitle") as string,
       description: formData.get("editDescription") as string,
       imageUrl: formData.get("editImageUrl") as string || "",
-      categoryIds: selectedCategories, // Directly use the array
+      categoryIds: selectedCategories,
       level: formData.get("editLevel") as string,
       duration: Number(formData.get("editDuration")),
       creatorId: selectedCourse.creator.id
@@ -156,9 +156,28 @@ const AdminCourses = () => {
     }
   }
 
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast({ title: "Erro", description: "O nome da categoria é obrigatório", variant: "destructive" })
+      return
+    }
+
+    try {
+      const categoryDTO: CourseCategoryCreateDTO = {
+        categoryName: newCategoryName
+      }
+      await CourseCategoryAdminAPI.createCategory(categoryDTO)
+      setIsNewCategoryOpen(false)
+      setNewCategoryName("")
+      fetchCategories()
+      toast({ title: "Categoria criada", description: "A nova categoria foi criada com sucesso." })
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao criar categoria", variant: "destructive" })
+    }
+  }
+
   const openEditDialog = (course: CourseResponseDTO) => {
     setSelectedCourse(course)
-    // Assuming course.categories is a Set; convert to array
     setSelectedCategories(course.categories.size > 0 ? Array.from(course.categories).map(cat => cat.id) : [])
     setIsEditCourseOpen(true)
   }
@@ -192,14 +211,25 @@ const AdminCourses = () => {
             Gerencie os cursos da plataforma
           </p>
         </div>
-        <Button 
-          onClick={() => setIsNewCourseOpen(true)}
-          size="lg"
-          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-        >
-          <BookPlus className="w-5 h-5 mr-2" />
-          Novo Curso
-        </Button>
+        <div className="flex gap-4">
+          <Button 
+            onClick={() => setIsNewCategoryOpen(true)}
+            size="lg"
+            variant="outline"
+            className="border-primary text-primary hover:bg-primary/10"
+          >
+            <Tag className="w-5 h-5 mr-2" />
+            Nova Categoria
+          </Button>
+          <Button 
+            onClick={() => setIsNewCourseOpen(true)}
+            size="lg"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+          >
+            <BookPlus className="w-5 h-5 mr-2" />
+            Novo Curso
+          </Button>
+        </div>
       </div>
 
       <div className="relative">
@@ -494,6 +524,38 @@ const AdminCourses = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* New Category Dialog */}
+      <Dialog open={isNewCategoryOpen} onOpenChange={setIsNewCategoryOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Nova Categoria</DialogTitle>
+            <DialogDescription>
+              Adicione uma nova categoria de curso
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="categoryName">Nome da Categoria</Label>
+              <Input
+                id="categoryName"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                placeholder="Ex: Programação, Design, Marketing"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button"
+              onClick={handleCreateCategory}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600"
+            >
+              Criar Categoria
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
