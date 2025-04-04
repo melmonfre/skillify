@@ -22,7 +22,7 @@ interface SimuladoForm {
   duration: string;
   date: string;
   class: string;
-  subjects: string[];
+  courses: string[];
 }
 
 const MentorSimulados = () => {
@@ -40,7 +40,7 @@ const MentorSimulados = () => {
     duration: "",
     date: "",
     class: "",
-    subjects: []
+    courses: [] // Changed from subjects to courses
   });
 
   const mentorId = localStorage.getItem("userId");
@@ -60,6 +60,7 @@ const MentorSimulados = () => {
     };
     fetchSimulados();
   }, [toast]);
+
 
   const handleNewSimulado = async () => {
     if (!simuladoForm.title || !simuladoForm.totalQuestions || !simuladoForm.duration || !simuladoForm.date) {
@@ -116,10 +117,11 @@ const MentorSimulados = () => {
         duracao: duration,
         openingDate: openingDateUTC.toISOString(),
         maximumDate: maximumDateUTC.toISOString(),
+        courseIds: simuladoForm.courses, // Added courseIds
         questionIds: new Set<string>()
       };
   
-      console.log("Creating practice with:", practiceData); // Debug log
+      console.log("Creating practice with:", practiceData);
   
       const createdPractice = await PracticeMentorAPI.createPractice(practiceData);
       setSimulados([...simulados, createdPractice]);
@@ -135,7 +137,7 @@ const MentorSimulados = () => {
         duration: "",
         date: "",
         class: "",
-        subjects: []
+        courses: []
       });
     } catch (error) {
       toast({

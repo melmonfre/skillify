@@ -1,6 +1,6 @@
 // src/api/mentor/controllers/QuestionMentorAPI.ts
 import api from '../../api';
-import { QuestionCreateDTO, QuestionResponseDTO } from '../../dtos/questionDtos';
+import { QuestionContentCreateDTO, QuestionCreateDTO, QuestionResponseDTO } from '../../dtos/questionDtos';
 
 // Define Option interface (adjust fields based on your backend entity)
 interface Option {
@@ -139,6 +139,22 @@ export class QuestionMentorAPI {
       return response.data;
     } catch (error) {
       console.error('Error fetching superadmin questions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Updates the content of an existing question (mentor only)
+   * @param id Question ID
+   * @param content List of content items to update/create
+   * @returns Promise containing updated question DTO
+   */
+  static async updateQuestionContent(id: string, content: QuestionContentCreateDTO[]): Promise<QuestionResponseDTO> {
+    try {
+      const response = await api.put<QuestionResponseDTO>(`/api/mentor/questions/${id}/content`, content);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating question content:', error);
       throw error;
     }
   }

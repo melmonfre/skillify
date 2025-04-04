@@ -2,6 +2,7 @@
 import { UserResponseDTO } from './userDtos';
 import { ClassroomResponseDTO } from './classroomDtos';
 import { QuestionResponseDTO } from './questionDtos';
+import { CourseResponseDTO } from './courseDtos';
 
 export interface PracticeCreateDTO {
   mentorId: string;
@@ -11,6 +12,7 @@ export interface PracticeCreateDTO {
   duracao: number;
   openingDate: string; // ISO datetime string (e.g., "2025-03-25T14:30:00")
   maximumDate: string; // ISO datetime string
+  courseIds: string[];
   questionIds: Set<string>;
 }
 
@@ -23,5 +25,6 @@ export interface PracticeResponseDTO {
   duracao: number;
   openingDate: string; // ISO datetime string
   maximumDate: string; // ISO datetime string
+  courses: CourseResponseDTO[];
   questions: Set<QuestionResponseDTO>;
 }

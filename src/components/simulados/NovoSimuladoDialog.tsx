@@ -1,11 +1,15 @@
+// NovoSimuladoDialog.tsx
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useState, useEffect } from "react";
 import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI";
 import { ClassroomResponseDTO } from "@/api/dtos/classroomDtos";
+import { CourseMentorAPI } from "@/api/mentor/controllers/CourseMentorAPI";
+import { CourseResponseDTO } from "@/api/dtos/courseDtos";
 
 interface SimuladoForm {
   title: string;
@@ -13,7 +17,7 @@ interface SimuladoForm {
   duration: string;
   date: string;
   class: string;
-  subjects: string[];
+  courses: string[]; // Changed from subjects to courses
 }
 
 interface NovoSimuladoDialogProps {
@@ -32,7 +36,11 @@ export function NovoSimuladoDialog({
   onSubmit
 }: NovoSimuladoDialogProps) {
   const [classrooms, setClassrooms] = useState<ClassroomResponseDTO[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [courses, setCourses] = useState<CourseResponseDTO[]>([]);
+  const [loading, setLoading] = useState({
+    classrooms: false,
+    courses: false
+  });
   const [minDate, setMinDate] = useState("");
 
   useEffect(() => {
@@ -44,21 +52,35 @@ export function NovoSimuladoDialog({
 
   useEffect(() => {
     if (open) {
-      const fetchClassrooms = async () => {
+      const fetchData = async () => {
         try {
-          setLoading(true);
-          const response = await ClassroomMentorAPI.getAllClassrooms();
-          setClassrooms(response);
+          setLoading(prev => ({ ...prev, classrooms: true, courses: true }));
+          
+          // Fetch classrooms
+          const classroomsResponse = await ClassroomMentorAPI.getAllClassrooms();
+          setClassrooms(classroomsResponse);
+          
+          // Fetch courses
+          const coursesResponse = await CourseMentorAPI.getAllCoursesByMentor();
+          setCourses(coursesResponse);
         } catch (error) {
-          console.error('Failed to fetch classrooms:', error);
+          console.error('Failed to fetch data:', error);
           setClassrooms([]);
+          setCourses([]);
         } finally {
-          setLoading(false);
+          setLoading(prev => ({ ...prev, classrooms: false, courses: false }));
         }
       };
-      fetchClassrooms();
+      fetchData();
     }
   }, [open]);
+
+  const handleCourseToggle = (courseId: string) => {
+    const newCourses = form.courses.includes(courseId)
+      ? form.courses.filter(id => id !== courseId)
+      : [...form.courses, courseId];
+    onFormChange({ ...form, courses: newCourses });
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -123,10 +145,10 @@ export function NovoSimuladoDialog({
             <Select 
               value={form.class} 
               onValueChange={(value) => onFormChange({ ...form, class: value })}
-              disabled={loading}
+              disabled={loading.classrooms}
             >
               <SelectTrigger className="bg-white/5 border-slate-800 text-white">
-                <SelectValue placeholder={loading ? "Carregando turmas..." : "Selecione uma turma"} />
+                <SelectValue placeholder={loading.classrooms ? "Carregando turmas..." : "Selecione uma turma"} />
               </SelectTrigger>
               <SelectContent className="bg-slate-900 border-slate-800">
                 {classrooms.length > 0 ? (
@@ -147,6 +169,31 @@ export function NovoSimuladoDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label className="text-white">Matérias</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {loading.courses ? (
+                <p className="text-slate-400">Carregando matérias...</p>
+              ) : courses.length > 0 ? (
+                courses.map((course) => (
+                  <div key={course.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`course-${course.id}`}
+                      checked={form.courses.includes(course.id)}
+                      onCheckedChange={() => handleCourseToggle(course.id)}
+                      className="border-slate-700 data-[state=checked]:bg-purple-600"
+                    />
+                    <Label htmlFor={`course-${course.id}`} className="text-white">
+                      {course.name}
+                    </Label>
+                  </div>
+                ))
+              ) : (
+                <p className="text-slate-400">Nenhuma matéria encontrada</p>
+              )}
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button 
@@ -159,7 +206,7 @@ export function NovoSimuladoDialog({
           <Button 
             onClick={onSubmit}
             className="bg-purple-600 hover:bg-purple-700 text-white border-none"
-            disabled={loading || !form.date || !form.duration || !form.title || !form.totalQuestions || !form.class}
+            disabled={loading.classrooms || loading.courses || !form.date || !form.duration || !form.title || !form.totalQuestions || !form.class}
           >
             Criar Simulado
           </Button>

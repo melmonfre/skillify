@@ -1,3 +1,4 @@
+// src/pages/mentor/MentorQuestionBank.tsx
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,11 +6,11 @@ import { Plus, Trash2, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { QuestionMentorAPI } from '@/api/mentor/controllers/QuestionMentorAPI';
 import { OptionMentorAPI } from '@/api/mentor/controllers/OptionMentorAPI';
-import { QuestionResponseDTO } from '@/api/dtos/questionDtos';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import { QuestionResponseDTO, QuestionContentType, QuestionContentCreateDTO } from '@/api/dtos/questionDtos';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { DeleteQuestionDialog } from '@/components/mentor/question/DeleteQuestionDialog';
+import { CreateQuestionDialog } from '@/components/mentor/question/CreateQuestionDialog';
 
 export default function MentorQuestionBank() {
   const { toast } = useToast();
@@ -21,15 +22,6 @@ export default function MentorQuestionBank() {
   const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
-  const [newQuestion, setNewQuestion] = useState({
-    title: '',
-    options: [
-      { title: '', correct: false },
-      { title: '', correct: false },
-      { title: '', correct: false },
-      { title: '', correct: false },
-    ],
-  });
 
   const mentorId = localStorage.getItem('userId') || '';
 
@@ -96,98 +88,72 @@ export default function MentorQuestionBank() {
     }
   };
 
-  const handleCreateQuestion = async () => {
-    if (!newQuestion.title.trim()) {
-      toast({
-        title: 'Erro',
-        description: 'O título da questão é obrigatório',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    const hasCorrectOption = newQuestion.options.some(option => option.correct);
-    if (!hasCorrectOption) {
-      toast({
-        title: 'Erro',
-        description: 'Pelo menos uma opção deve estar correta',
-        variant: 'destructive',
-      });
-      return;
-    }
-
+  const handleCreateQuestion = async (
+    question: { 
+      title: string; 
+      options: { title: string; correct: boolean }[]; 
+      courseId?: string 
+    }, 
+    contentItems: { type: QuestionContentType; value: string }[]
+  ) => {
     try {
+      // Create the question first
       const createdQuestion = await QuestionMentorAPI.createQuestion({
-        title: newQuestion.title,
+        title: question.title,
         mentorId,
+        courseId: question.courseId // Include courseId if provided
       });
-
-      for (const option of newQuestion.options) {
-        if (option.title.trim()) {
-          await OptionMentorAPI.createOption({
+  
+      // Create options
+      const optionPromises = question.options
+        .filter(option => option.title.trim())
+        .map(option => 
+          OptionMentorAPI.createOption({
             questionId: createdQuestion.id,
             title: option.title,
             correct: option.correct,
-          });
-        }
+          })
+        );
+      await Promise.all(optionPromises);
+  
+      // Create content items (only if there are valid content items)
+      const validContentItems = contentItems
+        .filter(item => item.type && item.value.trim())
+        .map((item, index) => ({
+          questionId: createdQuestion.id,
+          position: index,
+          type: item.type,
+          value: item.value
+        }));
+  
+      if (validContentItems.length > 0) {
+        await QuestionMentorAPI.updateQuestionContent(
+          createdQuestion.id,
+          validContentItems
+        );
       }
-
+  
+      // Refresh questions list
       const updatedQuestions = await QuestionMentorAPI.getAllQuestions();
       setMentorQuestions(updatedQuestions);
-
+  
       toast({
         title: 'Sucesso',
         description: 'Questão criada com sucesso',
         variant: 'default',
       });
-
-      setNewQuestion({
-        title: '',
-        options: [
-          { title: '', correct: false },
-          { title: '', correct: false },
-          { title: '', correct: false },
-          { title: '', correct: false },
-        ],
-      });
-      setIsCreateDialogOpen(false);
+  
+      return true; // Return success status
     } catch (error) {
+      console.error('Error creating question:', error);
       toast({
         title: 'Erro',
-        description: 'Falha ao criar a questão',
+        description: error.response?.data?.message || 'Falha ao criar a questão',
         variant: 'destructive',
       });
+      return false; // Return failure status
     }
   };
-
-  const handleOptionChange = (index: number, field: string, value: string | boolean) => {
-    const updatedOptions = [...newQuestion.options];
-    updatedOptions[index] = {
-      ...updatedOptions[index],
-      [field]: value,
-    };
-    setNewQuestion({
-      ...newQuestion,
-      options: updatedOptions,
-    });
-  };
-
-  const addOption = () => {
-    setNewQuestion({
-      ...newQuestion,
-      options: [...newQuestion.options, { title: '', correct: false }],
-    });
-  };
-
-  const removeOption = (index: number) => {
-    const updatedOptions = [...newQuestion.options];
-    updatedOptions.splice(index, 1);
-    setNewQuestion({
-      ...newQuestion,
-      options: updatedOptions,
-    });
-  };
-
   const renderQuestionList = (questions: QuestionResponseDTO[], editable: boolean) => (
     isLoading ? (
       <div className="flex justify-center items-center h-64">
@@ -221,7 +187,7 @@ export default function MentorQuestionBank() {
                     )}
                   </div>
                   <p className="text-sm text-slate-400 mt-1">
-                    {Array.from(question.options).length} opções | Criada por: {question.mentor.name}
+                    {question.options.length} opções | Criada por: {question.mentor.name}
                   </p>
                 </button>
               </div>
@@ -242,9 +208,31 @@ export default function MentorQuestionBank() {
 
             {expandedQuestions.has(question.id) && (
               <div className="mt-4 pt-4 border-t border-slate-800 space-y-3">
+                {question.content.length > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium text-slate-300">Conteúdo:</h4>
+                    {question.content.sort((a, b) => a.position - b.position).map((content) => (
+                      <div key={content.id} className="p-3 rounded-md bg-white/5">
+                        {content.type === QuestionContentType.TEXT ? (
+                          <p className="text-white">{content.value}</p>
+                        ) : (
+                          <img 
+                            src={content.value} 
+                            alt="Question content" 
+                            className="max-h-40 rounded-md"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                            }}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <h4 className="text-sm font-medium text-slate-300">Opções:</h4>
                 <div className="space-y-2">
-                  {Array.from(question.options).map((option) => (
+                  {question.options.map((option) => (
                     <div
                       key={option.id}
                       className={`p-3 rounded-md ${option.correct ? 'bg-green-900/30 border border-green-800' : 'bg-white/5'}`}
@@ -311,104 +299,17 @@ export default function MentorQuestionBank() {
         </TabsContent>
       </Tabs>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="bg-black/80 border-slate-800 text-white">
-          <DialogHeader>
-            <DialogTitle>Confirmar Exclusão</DialogTitle>
-          </DialogHeader>
-          <p>Tem certeza que deseja excluir esta questão permanentemente?</p>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-              className="border-slate-800 text-white"
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteQuestion}
-            >
-              Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteQuestionDialog
+        isOpen={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        onConfirm={handleDeleteQuestion}
+      />
 
-      {/* Create Question Dialog */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="bg-black/80 border-slate-800 text-white max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Criar Nova Questão</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="question-title">Título da Questão</Label>
-              <Input
-                id="question-title"
-                className="bg-white/5 border-slate-800 mt-1"
-                value={newQuestion.title}
-                onChange={(e) => setNewQuestion({ ...newQuestion, title: e.target.value })}
-                placeholder="Digite o enunciado da questão"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Opções de Resposta</Label>
-              {newQuestion.options.map((option, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <Input
-                    className="bg-white/5 border-slate-800 flex-1"
-                    value={option.title}
-                    onChange={(e) => handleOptionChange(index, 'title', e.target.value)}
-                    placeholder={`Opção ${index + 1}`}
-                  />
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={option.correct}
-                      onChange={(e) => handleOptionChange(index, 'correct', e.target.checked)}
-                      className="h-4 w-4 rounded border-slate-800 bg-white/5"
-                    />
-                    <span className="text-sm">Correta</span>
-                  </div>
-                  {newQuestion.options.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-400 hover:text-red-300"
-                      onClick={() => removeOption(index)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-              <Button
-                variant="outline"
-                className="mt-2 border-slate-800 text-white"
-                onClick={addOption}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Adicionar Opção
-              </Button>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsCreateDialogOpen(false)}
-              className="border-slate-800 text-white"
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleCreateQuestion}>
-              Criar Questão
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CreateQuestionDialog
+        isOpen={isCreateDialogOpen}
+        onOpenChange={setIsCreateDialogOpen}
+        onSubmit={handleCreateQuestion}
+      />
     </div>
   );
 }

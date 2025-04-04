@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PracticeResponseDTO } from "@/api/dtos/practiceDtos";
 import { PracticeMentorAPI } from "@/api/mentor/controllers/PracticeMentorAPI";
 import { QuestionMentorAPI } from "@/api/mentor/controllers/QuestionMentorAPI";
-import { QuestionResponseDTO } from "@/api/dtos/questionDtos";
+import { QuestionResponseDTO, QuestionContentType } from "@/api/dtos/questionDtos";
 import { useState, useEffect } from "react";
 import {
   DropdownMenu,
@@ -15,6 +15,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { CourseMentorAPI } from "@/api/mentor/controllers/CourseMentorAPI";
+import { CourseResponseDTO } from "@/api/dtos/courseDtos";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 
 interface EditQuestionsDialogProps {
   open: boolean;
@@ -39,8 +43,9 @@ export function EditQuestionsDialog({
   const [searchTerm, setSearchTerm] = useState('');
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [localQuestions, setLocalQuestions] = useState<QuestionResponseDTO[]>([]);
+  const [courses, setCourses] = useState<CourseResponseDTO[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string>('all');
 
-  // Initialize local questions when simulado changes
   useEffect(() => {
     if (simulado?.questions) {
       setLocalQuestions(Array.from(simulado.questions));
@@ -52,6 +57,7 @@ export function EditQuestionsDialog({
   useEffect(() => {
     if (open) {
       fetchBankQuestions();
+      fetchCourses();
     }
   }, [open]);
 
@@ -75,21 +81,81 @@ export function EditQuestionsDialog({
     }
   };
 
+  const fetchCourses = async () => {
+    try {
+      const courses = await CourseMentorAPI.getAllCoursesByMentor();
+      setCourses(courses);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar cursos",
+        variant: "destructive"
+      });
+    }
+  };
+
   const filterQuestions = (questions: QuestionResponseDTO[]) => {
-    return questions.filter(question =>
-      question.title.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = questions;
+    
+    if (selectedCourse !== 'all') {
+      filtered = filtered.filter(q => q.course?.id === selectedCourse);
+    }
+    
+    if (searchTerm) {
+      filtered = filtered.filter(question =>
+        question.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        question.content.some(content => 
+          content.value.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
+    }
+    
+    return filtered;
   };
 
   const filteredMentorQuestions = filterQuestions(mentorQuestions);
   const filteredSuperAdminQuestions = filterQuestions(superAdminQuestions);
+
+  const renderQuestionContent = (question: QuestionResponseDTO) => {
+    if (!question.content || question.content.length === 0) {
+      return (
+        <div className="text-sm text-slate-300 mt-2 p-2 bg-slate-900/50 rounded">
+          {question.title}
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-2 mt-2">
+        {question.content.map((content, idx) => (
+          <div key={`${question.id}-${idx}`} className="border border-slate-800 rounded-lg p-2 bg-slate-900/50">
+            {content.type === QuestionContentType.TEXT ? (
+              <div 
+                className="text-sm text-slate-300"
+                dangerouslySetInnerHTML={{ __html: content.value }}
+              />
+            ) : (
+              <img 
+                src={content.value} 
+                alt="Question content" 
+                className="max-h-40 rounded-md border border-slate-800"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                }}
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const handleRemoveQuestion = async (questionId: string) => {
     if (!simulado || isDeleting) return;
 
     try {
       setIsDeleting(questionId);
-      // Optimistic UI update - remove from local state immediately
       setLocalQuestions(prev => prev.filter(q => q.id !== questionId));
       
       await PracticeMentorAPI.removeQuestionFromPractice(simulado.id, questionId);
@@ -100,12 +166,10 @@ export function EditQuestionsDialog({
         variant: "default"
       });
 
-      // Refresh the full state from backend to ensure consistency
       const updatedSimulado = await PracticeMentorAPI.getPracticeById(simulado.id);
       onQuestionRemoved(updatedSimulado);
       
     } catch (error) {
-      // Revert optimistic update if deletion fails
       if (simulado?.questions) {
         setLocalQuestions(Array.from(simulado.questions));
       }
@@ -125,7 +189,6 @@ export function EditQuestionsDialog({
     try {
       const updatedSimulado = await PracticeMentorAPI.addQuestionToPractice(simulado.id, questionId);
       
-      // Update local state immediately
       if (updatedSimulado.questions) {
         setLocalQuestions(Array.from(updatedSimulado.questions));
       }
@@ -148,7 +211,7 @@ export function EditQuestionsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] bg-black/80 border-slate-800">
+      <DialogContent className="sm:max-w-[800px] bg-black/80 border-slate-800 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white">
             {simulado ? `Editar Questões - ${simulado.title}` : 'Editar Questões'}
@@ -158,12 +221,12 @@ export function EditQuestionsDialog({
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex justify-end">
+        <div className="flex justify-between items-center mb-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="outline"
-                className="bg-white/5 border-slate-800 hover:bg-white/10 hover:border-slate-700 text-white mb-4"
+                className="bg-white/5 border-slate-800 hover:bg-white/10 hover:border-slate-700 text-white"
                 disabled={!simulado}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -186,10 +249,24 @@ export function EditQuestionsDialog({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {showAddMenu && (
+            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+              <SelectTrigger className="w-[180px] bg-white/5 border-slate-800 text-white">
+                <SelectValue placeholder="Filtrar por curso" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-900 border-slate-800">
+                <SelectItem value="all">Todos os cursos</SelectItem>
+                {courses.map(course => (
+                  <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
 
         {showAddMenu && (
-          <div className="mb-4 p-4 bg-slate-900/50 rounded-lg border border-slate-800">
+          <div className="mb-6 p-4 bg-slate-900/50 rounded-lg border border-slate-800">
             <div className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
@@ -210,21 +287,31 @@ export function EditQuestionsDialog({
                 {loadingQuestions ? (
                   <p className="text-slate-400">Carregando questões...</p>
                 ) : filteredMentorQuestions.length > 0 ? (
-                  <div className="max-h-40 overflow-y-auto space-y-2">
+                  <div className="max-h-60 overflow-y-auto space-y-3">
                     {filteredMentorQuestions.map(question => (
                       <div 
                         key={question.id} 
-                        className="flex justify-between items-center p-2 hover:bg-slate-800 rounded"
+                        className="p-3 bg-slate-800/50 rounded-md hover:bg-slate-700/50 transition-colors"
                       >
-                        <span className="text-white text-sm">{question.title}</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleAddFromBank(question.id)}
-                          className="text-green-400 hover:text-green-300"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-white">{question.title}</h4>
+                            {question.course && (
+                              <Badge variant="outline" className="mt-1 bg-slate-900 text-slate-300">
+                                {question.course.name}
+                              </Badge>
+                            )}
+                            {renderQuestionContent(question)}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleAddFromBank(question.id)}
+                            className="text-green-400 hover:text-green-300"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -239,21 +326,31 @@ export function EditQuestionsDialog({
                 {loadingQuestions ? (
                   <p className="text-slate-400">Carregando questões...</p>
                 ) : filteredSuperAdminQuestions.length > 0 ? (
-                  <div className="max-h-40 overflow-y-auto space-y-2">
+                  <div className="max-h-60 overflow-y-auto space-y-3">
                     {filteredSuperAdminQuestions.map(question => (
                       <div 
                         key={question.id} 
-                        className="flex justify-between items-center p-2 hover:bg-slate-800 rounded"
+                        className="p-3 bg-slate-800/50 rounded-md hover:bg-slate-700/50 transition-colors"
                       >
-                        <span className="text-white text-sm">{question.title}</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleAddFromBank(question.id)}
-                          className="text-green-400 hover:text-green-300"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </Button>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-white">{question.title}</h4>
+                            {question.course && (
+                              <Badge variant="outline" className="mt-1 bg-slate-900 text-slate-300">
+                                {question.course.name}
+                              </Badge>
+                            )}
+                            {renderQuestionContent(question)}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleAddFromBank(question.id)}
+                            className="text-green-400 hover:text-green-300"
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -267,30 +364,35 @@ export function EditQuestionsDialog({
           </div>
         )}
         
-        <div className="py-4 space-y-4 max-h-[60vh] overflow-y-auto">
+        <div className="space-y-4">
           {localQuestions.length > 0 ? (
             localQuestions.map((question) => (
-              <div key={question.id} className="flex items-center justify-between p-3 bg-white/5 rounded-md">
-                <div className="text-white">
-                  <p className="font-medium">{question.title}</p>
-                  <p className="text-sm text-slate-400">
-                    Opções: {question.options?.size || 0} | Criada por: {question.mentor?.name || 'Desconhecido'}
-                  </p>
+              <div key={question.id} className="p-4 bg-white/5 rounded-md border border-slate-800">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-white">{question.title}</h3>
+                    {question.course && (
+                      <Badge variant="outline" className="mt-1 bg-slate-900 text-slate-300">
+                        {question.course.name}
+                      </Badge>
+                    )}
+                    {renderQuestionContent(question)}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveQuestion(question.id)}
+                    className="text-red-400 hover:text-red-300"
+                    disabled={isDeleting === question.id}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveQuestion(question.id)}
-                  className="text-red-400 hover:text-red-300"
-                  disabled={isDeleting === question.id}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
               </div>
             ))
           ) : (
-            <div className="text-center p-4">
-              <p className="text-slate-400">
+            <div className="text-center p-6 border-2 border-dashed border-slate-700 rounded-lg">
+              <p className="text-slate-400 mb-4">
                 {simulado 
                   ? "Nenhuma questão encontrada neste simulado." 
                   : "Nenhum simulado selecionado."}
@@ -299,7 +401,7 @@ export function EditQuestionsDialog({
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    className="mt-4 bg-white/5 border-slate-800 hover:bg-white/10 hover:border-slate-700 text-white"
+                    className="bg-white/5 border-slate-800 hover:bg-white/10 hover:border-slate-700 text-white"
                     disabled={!simulado}
                   >
                     <Plus className="w-4 h-4 mr-2" />

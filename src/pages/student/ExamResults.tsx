@@ -1,5 +1,5 @@
-
 import { useParams } from "react-router-dom"
+import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
@@ -12,24 +12,57 @@ import {
   BarChart,
   BookOpen,
 } from "lucide-react"
-
-const mockResults = {
-  score: 850,
-  maxScore: 1000,
-  correctAnswers: 76,
-  totalQuestions: 90,
-  timeSpent: "4h 15min",
-  xpEarned: 500,
-  subjectBreakdown: [
-    { subject: "Matemática", score: 85, color: "text-blue-500" },
-    { subject: "Português", score: 92, color: "text-green-500" },
-    { subject: "Ciências", score: 78, color: "text-yellow-500" },
-    { subject: "Humanas", score: 88, color: "text-purple-500" },
-  ],
-}
+import { PracticeExecutionStudentAPI } from "@/api/student/controllers/PracticeExecutionStudentAPI"
+import { PracticeExecutionResponseDTO } from "@/api/dtos/practiceExecutionDtos"
 
 export default function ExamResults() {
-  const { id } = useParams()
+  const { id } = useParams<{ id: string }>()
+  const [execution, setExecution] = useState<PracticeExecutionResponseDTO | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchExecution = async () => {
+      if (!id) return
+
+      try {
+        setLoading(true)
+        const data = await PracticeExecutionStudentAPI.getPracticeExecutionById(id)
+        setExecution(data)
+      } catch (err) {
+        setError("Failed to load exam results")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchExecution()
+  }, [id])
+
+  // Calculate results from execution data
+  const results = execution ? {
+    score: execution.correctAnswers * 100, // Assuming 100 points per correct answer
+    maxScore: execution.practice.numberOfQuestions * 100,
+    correctAnswers: execution.correctAnswers,
+    totalQuestions: execution.practice.numberOfQuestions,
+    timeSpent: execution.practice.duracao ? `${execution.practice.duracao} min` : "N/A",
+    xpEarned: execution.correctAnswers * 10, // Mocked XP: 10 points per correct answer
+    subjectBreakdown: [
+      // This is mocked since we don't have subject-specific data in the DTO
+      { subject: "Matemática", score: Math.round((execution.correctAnswers / execution.practice.numberOfQuestions) * 85), color: "text-blue-500" },
+      { subject: "Português", score: Math.round((execution.correctAnswers / execution.practice.numberOfQuestions) * 92), color: "text-green-500" },
+      { subject: "Ciências", score: Math.round((execution.correctAnswers / execution.practice.numberOfQuestions) * 78), color: "text-yellow-500" },
+      { subject: "Humanas", score: Math.round((execution.correctAnswers / execution.practice.numberOfQuestions) * 88), color: "text-purple-500" },
+    ],
+  } : null
+
+  if (loading) {
+    return <div className="container py-8 text-center">Loading...</div>
+  }
+
+  if (error || !results) {
+    return <div className="container py-8 text-center text-red-500">{error || "No results found"}</div>
+  }
 
   return (
     <div className="container py-8 space-y-8">
@@ -37,11 +70,11 @@ export default function ExamResults() {
         <h1 className="text-3xl font-bold">Resultado do Simulado</h1>
         <div className="flex justify-center items-center gap-4">
           <Badge variant="secondary" className="text-xl py-2 px-4">
-            {mockResults.score} / {mockResults.maxScore}
+            {results.score} / {results.maxScore}
           </Badge>
           <Badge variant="outline" className="flex gap-2 py-2 px-4">
             <Trophy className="w-5 h-5 text-yellow-500" />
-            +{mockResults.xpEarned} XP
+            +{results.xpEarned} XP
           </Badge>
         </div>
       </div>
@@ -53,12 +86,12 @@ export default function ExamResults() {
             <div>
               <p className="text-sm text-muted-foreground">Acertos</p>
               <p className="text-2xl font-bold">
-                {mockResults.correctAnswers} / {mockResults.totalQuestions}
+                {results.correctAnswers} / {results.totalQuestions}
               </p>
             </div>
           </div>
           <Progress 
-            value={(mockResults.correctAnswers / mockResults.totalQuestions) * 100} 
+            value={(results.correctAnswers / results.totalQuestions) * 100} 
             className="mt-4"
           />
         </Card>
@@ -68,7 +101,7 @@ export default function ExamResults() {
             <Clock className="w-8 h-8 text-primary" />
             <div>
               <p className="text-sm text-muted-foreground">Tempo Total</p>
-              <p className="text-2xl font-bold">{mockResults.timeSpent}</p>
+              <p className="text-2xl font-bold">{results.timeSpent}</p>
             </div>
           </div>
         </Card>
@@ -78,7 +111,7 @@ export default function ExamResults() {
             <Zap className="w-8 h-8 text-yellow-500" />
             <div>
               <p className="text-sm text-muted-foreground">XP Ganho</p>
-              <p className="text-2xl font-bold">+{mockResults.xpEarned}</p>
+              <p className="text-2xl font-bold">+{results.xpEarned}</p>
             </div>
           </div>
         </Card>
@@ -87,7 +120,7 @@ export default function ExamResults() {
       <Card className="p-6">
         <h2 className="text-xl font-bold mb-6">Desempenho por Área</h2>
         <div className="space-y-6">
-          {mockResults.subjectBreakdown.map((subject) => (
+          {results.subjectBreakdown.map((subject) => (
             <div key={subject.subject} className="space-y-2">
               <div className="flex justify-between">
                 <span className={subject.color}>{subject.subject}</span>
