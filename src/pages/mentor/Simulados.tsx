@@ -23,6 +23,7 @@ interface SimuladoForm {
   date: string;
   class: string;
   courses: string[];
+  numberOfAllowedAttempts: string;
 }
 
 const MentorSimulados = () => {
@@ -40,7 +41,8 @@ const MentorSimulados = () => {
     duration: "",
     date: "",
     class: "",
-    courses: [] // Changed from subjects to courses
+    courses: [],
+    numberOfAllowedAttempts: "1" // Changed from subjects to courses
   });
 
   const mentorId = localStorage.getItem("userId");
@@ -71,6 +73,16 @@ const MentorSimulados = () => {
       });
       return;
     }
+
+    const numberOfAllowedAttempts = parseInt(simuladoForm.numberOfAllowedAttempts);
+if (numberOfAllowedAttempts <= 0) {
+  toast({
+    title: "Erro",
+    description: "O número de tentativas deve ser maior que zero",
+    variant: "destructive"
+  });
+  return;
+}
   
     const selectedDate = new Date(simuladoForm.date);
     const now = new Date();
@@ -118,7 +130,8 @@ const MentorSimulados = () => {
         openingDate: openingDateUTC.toISOString(),
         maximumDate: maximumDateUTC.toISOString(),
         courseIds: simuladoForm.courses, // Added courseIds
-        questionIds: new Set<string>()
+        questionIds: new Set<string>(),
+        numberOfAllowedAttempts: numberOfAllowedAttempts 
       };
   
       console.log("Creating practice with:", practiceData);
@@ -137,7 +150,8 @@ const MentorSimulados = () => {
         duration: "",
         date: "",
         class: "",
-        courses: []
+        courses: [],
+        numberOfAllowedAttempts: "1"
       });
     } catch (error) {
       toast({

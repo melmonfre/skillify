@@ -14,6 +14,7 @@ export interface PracticeCreateDTO {
   maximumDate: string; // ISO datetime string
   courseIds: string[];
   questionIds: Set<string>;
+  numberOfAllowedAttempts? : number;
 }
 
 export interface PracticeResponseDTO {
@@ -27,4 +28,5 @@ export interface PracticeResponseDTO {
   maximumDate: string; // ISO datetime string
   courses: CourseResponseDTO[];
   questions: Set<QuestionResponseDTO>;
+  numberOfAllowedAttempts? : number;
 }

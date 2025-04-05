@@ -1,82 +1,128 @@
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { Clock, Trophy, BarChart, Award } from "lucide-react"
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import { toast } from "sonner"
-import { PracticeResponseDTO } from "@/api/dtos/practiceDtos"
-import { PracticeStudentAPI } from "@/api/student/controllers/PracticeStudentAPI"
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Clock, Trophy, BarChart, Award } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { PracticeResponseDTO } from "@/api/dtos/practiceDtos";
+import { PracticeStudentAPI } from "@/api/student/controllers/PracticeStudentAPI";
+import { PracticeExecutionResponseDTO } from "@/api/dtos/practiceExecutionDtos";
+import { PracticeExecutionStudentAPI } from "@/api/student/controllers/PracticeExecutionStudentAPI";
 
 const StudentExams = () => {
-  const [examProgress] = useState(0)
-  const [practices, setPractices] = useState<PracticeResponseDTO[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const navigate = useNavigate()
+  const [examProgress, setExamProgress] = useState(0);
+  const [practices, setPractices] = useState<PracticeResponseDTO[]>([]);
+  const [executions, setExecutions] = useState<PracticeExecutionResponseDTO[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchPractices = async () => {
+    const fetchData = async () => {
       try {
-        const data = await PracticeStudentAPI.getAllPractices()
-        console.log("Fetched practices:", data)
-        setPractices(data)
-        setError(null)
+        const [practiceData, executionData] = await Promise.all([
+          PracticeStudentAPI.getAllPractices(),
+          PracticeExecutionStudentAPI.getAllStudentPracticeExecutions()
+        ]);
+        
+        console.log("Fetched practices:", practiceData);
+        console.log("Fetched executions:", executionData);
+        
+        setPractices(practiceData);
+        setExecutions(executionData);
+        
+        // Calculate progress based on unique completed practices
+        const uniqueCompletedPracticeIds = new Set(executionData.map(exec => exec.practice.id));
+        const totalPractices = practiceData.length;
+        const progress = totalPractices > 0 
+          ? Math.round((uniqueCompletedPracticeIds.size / totalPractices) * 100) 
+          : 0;
+        setExamProgress(progress);
+        
+        setError(null);
       } catch (error) {
-        console.error("Error fetching practices:", error)
-        setError("Não foi possível carregar os simulados. Tente novamente mais tarde.")
+        console.error("Error fetching data:", error);
+        setError("Não foi possível carregar os dados. Tente novamente mais tarde.");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
-    }
+    };
     
-    fetchPractices()
-  }, [])
+    fetchData();
+  }, []);
 
   const handleStartExam = (practiceId: string) => {
-    navigate(`/dashboard/simulados/prova/${practiceId}`)
-    toast.success("Iniciando simulado...")
-  }
+    navigate(`/dashboard/simulados/prova/${practiceId}`);
+    toast.success("Iniciando simulado...");
+  };
 
   const handleViewResults = (practiceId: string) => {
-    navigate(`/simulados/resultado/${practiceId}`)
-    toast.success("Carregando resultados...")
-  }
+    navigate(`/simulados/resultado/${practiceId}`);
+    toast.success("Carregando resultados...");
+  };
 
   const getPracticeStatus = (practice: PracticeResponseDTO) => {
-    const now = new Date().toISOString(); // Convert current time to UTC string for consistent comparison
-    const openingDate = new Date(practice.openingDate).toISOString();
-    const maximumDate = new Date(practice.maximumDate).toISOString();
-  
-    // Compare as strings or convert back to Date objects after ensuring UTC
-    const nowDate = new Date(now);
-    const openingDateObj = new Date(openingDate);
-    const maximumDateObj = new Date(maximumDate);
+    const now = new Date();
+    const openingDate = new Date(practice.openingDate);
+    const maximumDate = new Date(practice.maximumDate);
 
-    console.log("Now:", now);
-console.log("Opening Date:", openingDate);
-console.log("Maximum Date:", maximumDate);
-  
-    if (openingDateObj >= maximumDateObj) {
+    if (openingDate >= maximumDate) {
       return { status: "Datas Inválidas", variant: "destructive" as const };
     }
-  
-    if (nowDate < openingDateObj) {
+    
+    if (now < openingDate) {
       return { status: "Agendado", variant: "outline" as const };
     }
-    if (nowDate > maximumDateObj) {
+    if (now > maximumDate) {
       return { status: "Concluído", variant: "secondary" as const };
     }
     return { status: "Disponível", variant: "default" as const };
   };
+
+  // Get the number of attempts for a specific practice
+  const getAttemptCountForPractice = (practiceId: string) => {
+    return executions.filter(exec => exec.practice.id === practiceId).length;
+  };
+
+  // Calculate statistics from executions
+  const getStats = () => {
+    if (executions.length === 0) {
+      return {
+        completedPracticeCount: 0,
+        avgScore: 0,
+        avgTime: 0
+      };
+    }
+
+    // Count unique completed practices
+    const completedPracticeIds = new Set(executions.map(exec => exec.practice.id));
+    const completedPracticeCount = completedPracticeIds.size;
+
+    // Calculate average score based on actual questions array length
+    const totalScore = executions.reduce((sum, exec) => {
+      const questionCount = new Set(exec.practice.questions).size;
+      console.log(`Execution ${exec.id}: ${exec.correctAnswers}/${questionCount} questions correct`);
+      return sum + (questionCount > 0 ? (exec.correctAnswers / questionCount * 100) : 0);
+    }, 0);
+    const avgScore = Math.round(totalScore / executions.length);
+    
+    // Calculate average time across all executions
+    const totalTime = executions.reduce((sum, exec) => sum + (exec.duration || 0), 0);
+    const avgTime = Math.round(totalTime / executions.length / 60); // Convert to minutes
+
+    return { completedPracticeCount, avgScore, avgTime };
+  };
+
+  const stats = getStats();
 
   if (isLoading) {
     return (
       <div className="container py-8 flex justify-center">
         <div className="animate-pulse text-lg">Carregando simulados...</div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -87,25 +133,13 @@ console.log("Maximum Date:", maximumDate);
           <Button 
             variant="outline" 
             className="mt-4"
-            onClick={() => {
-              setIsLoading(true)
-              setError(null)
-              PracticeStudentAPI.getAllPractices()
-                .then(data => {
-                  setPractices(data)
-                  setIsLoading(false)
-                })
-                .catch(() => {
-                  setIsLoading(false)
-                  setError("Falha ao tentar recarregar. Verifique sua conexão.")
-                })
-            }}
+            onClick={() => window.location.reload()}
           >
             Tentar novamente
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -137,26 +171,21 @@ console.log("Maximum Date:", maximumDate);
               <Award className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-sm font-medium">Simulados Completos</p>
-                <p className="text-2xl font-bold">
-                  {practices.filter(p => {
-                    const maxDate = new Date(p.maximumDate)
-                    return maxDate < new Date() && new Date(p.openingDate) < maxDate
-                  }).length}
-                </p>
+                <p className="text-2xl font-bold">{stats.completedPracticeCount}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-white/50 rounded-lg p-4">
               <BarChart className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-sm font-medium">Média Geral</p>
-                <p className="text-2xl font-bold">--</p>
+                <p className="text-2xl font-bold">{stats.avgScore}%</p>
               </div>
             </div>
             <div className="flex items-center gap-3 bg-white/50 rounded-lg p-4">
               <Clock className="w-8 h-8 text-primary" />
               <div>
                 <p className="text-sm font-medium">Tempo Médio</p>
-                <p className="text-2xl font-bold">--</p>
+                <p className="text-2xl font-bold">{stats.avgTime}m</p>
               </div>
             </div>
           </div>
@@ -171,10 +200,12 @@ console.log("Maximum Date:", maximumDate);
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {practices.map((practice) => {
-            const { status, variant } = getPracticeStatus(practice)
-            const isInvalid = status === "Datas Inválidas"
-            const isCompleted = status === "Concluído"
-            const isAvailable = status === "Disponível"
+            const { status, variant } = getPracticeStatus(practice);
+            const isInvalid = status === "Datas Inválidas";
+            const isCompleted = status === "Concluído";
+            const isAvailable = status === "Disponível";
+            const attemptCount = getAttemptCountForPractice(practice.id);
+            const maxAttemptsReached = attemptCount >= (practice.numberOfAllowedAttempts || 1);
 
             return (
               <Card key={practice.id}>
@@ -197,7 +228,10 @@ console.log("Maximum Date:", maximumDate);
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <BarChart className="w-4 h-4" />
-                      <span>{practice.numberOfQuestions} questões</span>
+                      <span>{new Set(practice.questions).size} questões</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Tentativas: {attemptCount}/{practice.numberOfAllowedAttempts || 1}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -207,8 +241,12 @@ console.log("Maximum Date:", maximumDate);
                       Datas inválidas
                     </Button>
                   ) : isAvailable ? (
-                    <Button className="w-full" onClick={() => handleStartExam(practice.id)}>
-                      Começar Simulado
+                    <Button 
+                      className="w-full" 
+                      onClick={() => handleStartExam(practice.id)}
+                      disabled={maxAttemptsReached}
+                    >
+                      {maxAttemptsReached ? "Tentativas esgotadas" : "Começar Simulado"}
                     </Button>
                   ) : isCompleted ? (
                     <Button variant="outline" className="w-full" onClick={() => handleViewResults(practice.id)}>
@@ -221,12 +259,12 @@ console.log("Maximum Date:", maximumDate);
                   )}
                 </CardFooter>
               </Card>
-            )
+            );
           })}
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default StudentExams
+export default StudentExams;

@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom"
+import { useParams, useNavigate } from "react-router-dom" // Added useNavigate
 import { useEffect, useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -9,59 +9,95 @@ import {
   Target,
   Zap,
   Clock,
-  BarChart,
   BookOpen,
 } from "lucide-react"
 import { PracticeExecutionStudentAPI } from "@/api/student/controllers/PracticeExecutionStudentAPI"
+import { PracticeStudentAPI } from "@/api/student/controllers/PracticeStudentAPI"
 import { PracticeExecutionResponseDTO } from "@/api/dtos/practiceExecutionDtos"
+import { PracticeResponseDTO } from "@/api/dtos/practiceDtos"
 
 export default function ExamResults() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate() // Added navigate hook
   const [execution, setExecution] = useState<PracticeExecutionResponseDTO | null>(null)
+  const [practice, setPractice] = useState<PracticeResponseDTO | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchExecution = async () => {
-      if (!id) return
+    const fetchData = async () => {
+      if (!id) {
+        setError("No execution ID provided")
+        setLoading(false)
+        return
+      }
 
       try {
         setLoading(true)
-        const data = await PracticeExecutionStudentAPI.getPracticeExecutionById(id)
-        setExecution(data)
+        
+        const executionData = await PracticeExecutionStudentAPI.getPracticeExecutionById(id)
+        setExecution(executionData)
+
+        const practiceData = await PracticeStudentAPI.getPracticeById(executionData.practice.id)
+        setPractice(practiceData)
       } catch (err) {
-        setError("Failed to load exam results")
+        setError("Failed to load exam results: " + (err instanceof Error ? err.message : String(err)))
       } finally {
         setLoading(false)
       }
     }
 
-    fetchExecution()
+    fetchData()
   }, [id])
 
-  // Calculate results from execution data
-  const results = execution ? {
-    score: execution.correctAnswers * 100, // Assuming 100 points per correct answer
-    maxScore: execution.practice.numberOfQuestions * 100,
-    correctAnswers: execution.correctAnswers,
-    totalQuestions: execution.practice.numberOfQuestions,
-    timeSpent: execution.practice.duracao ? `${execution.practice.duracao} min` : "N/A",
-    xpEarned: execution.correctAnswers * 10, // Mocked XP: 10 points per correct answer
-    subjectBreakdown: [
-      // This is mocked since we don't have subject-specific data in the DTO
-      { subject: "Matemática", score: Math.round((execution.correctAnswers / execution.practice.numberOfQuestions) * 85), color: "text-blue-500" },
-      { subject: "Português", score: Math.round((execution.correctAnswers / execution.practice.numberOfQuestions) * 92), color: "text-green-500" },
-      { subject: "Ciências", score: Math.round((execution.correctAnswers / execution.practice.numberOfQuestions) * 78), color: "text-yellow-500" },
-      { subject: "Humanas", score: Math.round((execution.correctAnswers / execution.practice.numberOfQuestions) * 88), color: "text-purple-500" },
-    ],
-  } : null
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return "N/A"
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return `${minutes}m ${remainingSeconds}s`
+  }
+
+  const results = (() => {
+    if (!execution || !practice) return null
+    
+    if (!execution.practice?.numberOfQuestions || !execution.correctAnswers) {
+      console.error('Missing required data:', { 
+        numberOfQuestions: execution.practice?.numberOfQuestions, 
+        correctAnswers: execution.correctAnswers,
+        courses: practice.courses 
+      })
+      return null
+    }
+
+    const courses = practice.courses ? Array.from(practice.courses) : null
+
+    return {
+      score: execution.correctAnswers * 100,
+      maxScore: execution.practice.numberOfQuestions * 100,
+      correctAnswers: execution.correctAnswers,
+      totalQuestions: execution.practice.numberOfQuestions,
+      timeSpent: formatDuration(execution.duration),
+      xpEarned: execution.correctAnswers * 10,
+      subjectBreakdown: courses?.map((course, index) => {
+        const baseScore = (execution.correctAnswers / execution.practice.numberOfQuestions) * 100
+        const variation = 0;
+        const score = Math.max(0, Math.min(100, Math.round(baseScore + variation)))
+        
+        return {
+          subject: course.name ?? 'Unknown Course',
+          score,
+          color: `text-${['blue', 'green', 'yellow', 'purple', 'red', 'pink'][index % 6]}-500`
+        }
+      })
+    }
+  })()
 
   if (loading) {
     return <div className="container py-8 text-center">Loading...</div>
   }
 
   if (error || !results) {
-    return <div className="container py-8 text-center text-red-500">{error || "No results found"}</div>
+    return <div className="container py-8 text-center text-red-500">{error || "No results available - data might be incomplete"}</div>
   }
 
   return (
@@ -117,27 +153,25 @@ export default function ExamResults() {
         </Card>
       </div>
 
-      <Card className="p-6">
-        <h2 className="text-xl font-bold mb-6">Desempenho por Área</h2>
-        <div className="space-y-6">
-          {results.subjectBreakdown.map((subject) => (
-            <div key={subject.subject} className="space-y-2">
-              <div className="flex justify-between">
-                <span className={subject.color}>{subject.subject}</span>
-                <span>{subject.score}%</span>
+      {results.subjectBreakdown && (
+        <Card className="p-6">
+          <h2 className="text-xl font-bold mb-6">Desempenho por Área</h2>
+          <div className="space-y-6">
+            {results.subjectBreakdown.map((subject) => (
+              <div key={subject.subject} className="space-y-2">
+                <div className="flex justify-between">
+                  <span className={subject.color}>{subject.subject}</span>
+                  <span>{subject.score}%</span>
+                </div>
+                <Progress value={subject.score} />
               </div>
-              <Progress value={subject.score} />
-            </div>
-          ))}
-        </div>
-      </Card>
+            ))}
+          </div>
+        </Card>
+      )}
 
-      <div className="flex justify-center gap-4">
-        <Button variant="outline">
-          <BarChart className="w-4 h-4 mr-2" />
-          Ver Detalhes
-        </Button>
-        <Button>
+      <div className="flex justify-center">
+        <Button onClick={() => navigate('/dashboard/simulados')}>
           <BookOpen className="w-4 h-4 mr-2" />
           Novo Simulado
         </Button>

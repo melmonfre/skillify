@@ -32,6 +32,7 @@ export default function ExamPage() {
   const [questions, setQuestions] = useState<QuestionResponseDTO[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
+  const [startTime, setStartTime] = useState<number | null>(null) // New state for tracking start time
   const [isFinished, setIsFinished] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,6 +53,7 @@ export default function ExamPage() {
         const questionsArray = Array.from(practiceData.questions)
         setQuestions(questionsArray)
         setTimeLeft(practiceData.duracao * 60)
+        setStartTime(Date.now()) // Set start time when practice loads
         setUserAnswers(questionsArray.map(question => ({
           questionId: question.id,
           optionId: null
@@ -82,8 +84,6 @@ export default function ExamPage() {
 
     return () => clearInterval(timer)
   }, [timeLeft, isFinished, isLoading])
-
-  
 
   const handleOptionSelect = (optionId: string) => {
     setUserAnswers(prev => {
@@ -120,13 +120,18 @@ export default function ExamPage() {
         return selectedOption?.correct ? count + 1 : count
       }, 0)
 
+      // Calculate duration in seconds
+      const endTime = Date.now()
+      const duration = startTime ? Math.floor((endTime - startTime) / 1000) : 0
+
       const executionData: PracticeExecutionCreateDTO = {
         studentId: localStorage.getItem("userId") || "",
         practiceId: id!,
         selectedAnswerIds: userAnswers
           .map(answer => answer.optionId)
           .filter(Boolean) as string[],
-        correctAnswers
+        correctAnswers,
+        duration // Add duration to the execution data
       }
 
       const execution = await PracticeExecutionStudentAPI.createPracticeExecution(executionData)
@@ -159,8 +164,6 @@ export default function ExamPage() {
         {question.content
           .sort((a, b) => a.position - b.position)
           .map((content) => {
-            console.log(`Rendering content:`, content); // Debug log
-            
             return (
               <div key={content.id} className="content-block">
                 {content.type === QuestionContentType.TEXT ? (
@@ -176,7 +179,6 @@ export default function ExamPage() {
                         console.error('Image failed to load:', content.value);
                         const target = e.target as HTMLImageElement;
                         target.style.display = 'none';
-                        // Optional: Show a placeholder
                         target.parentElement!.innerHTML = `
                           <div class="text-center text-gray-500">
                             <p>Image not available</p>
@@ -206,7 +208,6 @@ export default function ExamPage() {
   }
 
   const currentQuestion = questions[currentQuestionIndex]
-  
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100
   const currentAnswer = userAnswers[currentQuestionIndex]?.optionId
   const answeredQuestions = userAnswers.filter(answer => answer.optionId !== null).length

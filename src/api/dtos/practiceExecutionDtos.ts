@@ -8,6 +8,7 @@ export interface PracticeExecutionResponseDTO {
     practice: PracticeResponseDTO;
     selectedAnswers: Set<OptionResponseDTO>;
     correctAnswers: number;
+    duration? : number;
 }
 
 
@@ -16,4 +17,5 @@ export interface PracticeExecutionCreateDTO {
     practiceId: string;
     selectedAnswerIds: string[];
     correctAnswers: number;
+    duration? : number;
 }

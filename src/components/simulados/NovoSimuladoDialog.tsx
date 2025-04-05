@@ -18,6 +18,7 @@ interface SimuladoForm {
   date: string;
   class: string;
   courses: string[]; // Changed from subjects to courses
+  numberOfAllowedAttempts: string; // Default to 1 attempt
 }
 
 interface NovoSimuladoDialogProps {
@@ -125,6 +126,18 @@ export function NovoSimuladoDialog({
                 className="bg-white/5 border-slate-800 text-white"
               />
             </div>
+            <div className="space-y-2">
+    <Label htmlFor="attempts" className="text-white">Número de Tentativas Permitidas</Label>
+    <Input
+      id="attempts"
+      type="number"
+      min="1"
+      value={form.numberOfAllowedAttempts}
+      onChange={(e) => onFormChange({ ...form, numberOfAllowedAttempts: e.target.value })}
+      placeholder="Ex: 3"
+      className="bg-white/5 border-slate-800 text-white"
+    />
+  </div>
           </div>
 
           <div className="space-y-2">
@@ -206,7 +219,7 @@ export function NovoSimuladoDialog({
           <Button 
             onClick={onSubmit}
             className="bg-purple-600 hover:bg-purple-700 text-white border-none"
-            disabled={loading.classrooms || loading.courses || !form.date || !form.duration || !form.title || !form.totalQuestions || !form.class}
+            disabled={loading.classrooms || loading.courses || !form.date || !form.duration || !form.title || !form.totalQuestions || !form.class || !form.numberOfAllowedAttempts}
           >
             Criar Simulado
           </Button>
