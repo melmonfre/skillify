@@ -8,13 +8,15 @@ import { SimuladoCard } from "@/components/simulados/SimuladoCard";
 import { NovoSimuladoDialog } from "@/components/simulados/NovoSimuladoDialog";
 import { NewQuestionDialog } from "@/components/simulados/NewQuestionDialog";
 import { ResultadosDialog } from "@/components/simulados/ResultadosDialog";
+import { EditQuestionsDialog } from "@/components/simulados/EditQuestionDialog";
 import { PracticeMentorAPI } from "@/api/mentor/controllers/PracticeMentorAPI";
 import { OptionMentorAPI } from "@/api/mentor/controllers/OptionMentorAPI";
 import { QuestionMentorAPI } from "@/api/mentor/controllers/QuestionMentorAPI";
+import { PracticeExecutionMentorAPI } from "@/api/mentor/controllers/PracticeExecutionMentorAPI";
 import { PracticeCreateDTO, PracticeResponseDTO } from "@/api/dtos/practiceDtos";
+import { PracticeExecutionResponseDTO } from "@/api/dtos/practiceExecutionDtos";
 import { QuestionCreateDTO } from "@/api/dtos/questionDtos";
 import { OptionCreateDTO } from "@/api/dtos/optionDtos";
-import { EditQuestionsDialog } from "@/components/simulados/EditQuestionDialog";
 
 interface SimuladoForm {
   title: string;
@@ -35,6 +37,7 @@ const MentorSimulados = () => {
   const [isResultsOpen, setIsResultsOpen] = useState(false);
   const [selectedSimulado, setSelectedSimulado] = useState<PracticeResponseDTO | null>(null);
   const [simulados, setSimulados] = useState<PracticeResponseDTO[]>([]);
+  const [executions, setExecutions] = useState<PracticeExecutionResponseDTO[]>([]);
   const [simuladoForm, setSimuladoForm] = useState<SimuladoForm>({
     title: "",
     totalQuestions: "",
@@ -42,27 +45,31 @@ const MentorSimulados = () => {
     date: "",
     class: "",
     courses: [],
-    numberOfAllowedAttempts: "1" // Changed from subjects to courses
+    numberOfAllowedAttempts: "1"
   });
 
   const mentorId = localStorage.getItem("userId");
 
   useEffect(() => {
-    const fetchSimulados = async () => {
+    const fetchData = async () => {
       try {
+        // Fetch practices
         const practices = await PracticeMentorAPI.getAllPractices();
         setSimulados(practices);
+        
+        // Fetch executions
+        const practiceExecutions = await PracticeExecutionMentorAPI.getAllMentorPracticeExecutions();
+        setExecutions(practiceExecutions);
       } catch (error) {
         toast({
           title: "Erro",
-          description: "Falha ao carregar os simulados",
+          description: "Falha ao carregar os dados",
           variant: "destructive"
         });
       }
     };
-    fetchSimulados();
+    fetchData();
   }, [toast]);
-
 
   const handleNewSimulado = async () => {
     if (!simuladoForm.title || !simuladoForm.totalQuestions || !simuladoForm.duration || !simuladoForm.date) {
@@ -75,14 +82,14 @@ const MentorSimulados = () => {
     }
 
     const numberOfAllowedAttempts = parseInt(simuladoForm.numberOfAllowedAttempts);
-if (numberOfAllowedAttempts <= 0) {
-  toast({
-    title: "Erro",
-    description: "O número de tentativas deve ser maior que zero",
-    variant: "destructive"
-  });
-  return;
-}
+    if (numberOfAllowedAttempts <= 0) {
+      toast({
+        title: "Erro",
+        description: "O número de tentativas deve ser maior que zero",
+        variant: "destructive"
+      });
+      return;
+    }
   
     const selectedDate = new Date(simuladoForm.date);
     const now = new Date();
@@ -129,12 +136,10 @@ if (numberOfAllowedAttempts <= 0) {
         duracao: duration,
         openingDate: openingDateUTC.toISOString(),
         maximumDate: maximumDateUTC.toISOString(),
-        courseIds: simuladoForm.courses, // Added courseIds
+        courseIds: simuladoForm.courses,
         questionIds: new Set<string>(),
         numberOfAllowedAttempts: numberOfAllowedAttempts 
       };
-  
-      console.log("Creating practice with:", practiceData);
   
       const createdPractice = await PracticeMentorAPI.createPractice(practiceData);
       setSimulados([...simulados, createdPractice]);
@@ -221,6 +226,20 @@ if (numberOfAllowedAttempts <= 0) {
     }
   };
 
+  const handleViewResults = async (simuladoId: string) => {
+    try {
+      const simuladoExecutions = executions.filter(exec => exec.practice.id === simuladoId);
+      setSelectedSimulado(simulados.find(s => s.id === simuladoId) || null);
+      setIsResultsOpen(true);
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao carregar os resultados",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="p-6 space-y-6 animate-fadeIn">
       <div className="flex justify-between items-center">
@@ -242,7 +261,7 @@ if (numberOfAllowedAttempts <= 0) {
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 h-4 text-slate-400" />
         <Input 
           placeholder="Buscar simulados..." 
           className="pl-10 bg-white/5 border-slate-800 text-white placeholder:text-slate-400"
@@ -254,7 +273,7 @@ if (numberOfAllowedAttempts <= 0) {
           <SimuladoCard 
             key={simulado.id}
             simulado={simulado}
-            onViewResults={() => setIsResultsOpen(true)}
+            onViewResults={() => handleViewResults(simulado.id)}
             onAddQuestion={() => {
               setSelectedSimulado(simulado);
               setIsNewQuestionOpen(true);
@@ -263,28 +282,6 @@ if (numberOfAllowedAttempts <= 0) {
             onEditQuestions={() => handleEditQuestions(simulado.id)}
           />
         ))}
-        {simulados.length === 0 && (
-          <>
-            <SimuladoCard 
-              onViewResults={() => setIsResultsOpen(true)} 
-              onAddQuestion={() => setIsNewQuestionOpen(true)}
-              onViewSimulado={() => {}}
-              onEditQuestions={() => setIsEditQuestionsOpen(true)}
-            />
-            <SimuladoCard 
-              onViewResults={() => setIsResultsOpen(true)} 
-              onAddQuestion={() => setIsNewQuestionOpen(true)}
-              onViewSimulado={() => {}}
-              onEditQuestions={() => setIsEditQuestionsOpen(true)}
-            />
-            <SimuladoCard 
-              onViewResults={() => setIsResultsOpen(true)} 
-              onAddQuestion={() => setIsNewQuestionOpen(true)}
-              onViewSimulado={() => {}}
-              onEditQuestions={() => setIsEditQuestionsOpen(true)}
-            />
-          </>
-        )}
       </div>
 
       <NovoSimuladoDialog
@@ -315,6 +312,10 @@ if (numberOfAllowedAttempts <= 0) {
       <ResultadosDialog
         open={isResultsOpen}
         onOpenChange={setIsResultsOpen}
+        executions={selectedSimulado 
+          ? executions.filter(exec => exec.practice.id === selectedSimulado.id) 
+          : []
+        }
       />
     </div>
   );

@@ -37,7 +37,7 @@ const Mentoring = () => {
   }, [])
 
   const handleScheduleMentoring = (mentorId: string) => {
-    navigate(`/mentoria/agendar/${mentorId}`)
+    navigate(`/dashboard/mentoria/agendar/${mentorId}`)
     toast.success("Redirecionando para agendamento...")
   }
 
