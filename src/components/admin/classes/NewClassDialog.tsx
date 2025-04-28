@@ -109,7 +109,7 @@ export function NewClassDialog({ open, onOpenChange, onSubmit }: NewClassDialogP
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Cursos</Label>
+            <Label>Cursos (opcional)</Label>
             <div className="max-h-40 overflow-y-auto border rounded-md p-2">
               {courses.map((course) => (
                 <div key={course.id} className="flex items-center space-x-2 py-1">

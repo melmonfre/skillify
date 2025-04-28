@@ -61,6 +61,7 @@ const AdminCourses = () => {
   const [isEditCourseOpen, setIsEditCourseOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false)
+  const [isCategoriesListOpen, setIsCategoriesListOpen] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState("")
   const [selectedCourse, setSelectedCourse] = useState<CourseResponseDTO | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
@@ -176,6 +177,16 @@ const AdminCourses = () => {
     }
   }
 
+  const handleDeleteCategory = async (categoryId: string) => {
+    try {
+      await CourseCategoryAdminAPI.deleteCategory(categoryId)
+      fetchCategories()
+      toast({ title: "Categoria removida", description: "A categoria foi removida com sucesso." })
+    } catch (error) {
+      toast({ title: "Erro", description: "Falha ao remover categoria", variant: "destructive" })
+    }
+  }
+
   const openEditDialog = (course: CourseResponseDTO) => {
     setSelectedCourse(course)
     setSelectedCategories(course.categories.size > 0 ? Array.from(course.categories).map(cat => cat.id) : [])
@@ -220,6 +231,15 @@ const AdminCourses = () => {
           >
             <Tag className="w-5 h-5 mr-2" />
             Nova Categoria
+          </Button>
+          <Button 
+            onClick={() => setIsCategoriesListOpen(true)}
+            size="lg"
+            variant="outline"
+            className="border-primary text-primary hover:bg-primary/10"
+          >
+            <BookOpen className="w-5 h-5 mr-2" />
+            Listar Categorias
           </Button>
           <Button 
             onClick={() => setIsNewCourseOpen(true)}
@@ -552,6 +572,53 @@ const AdminCourses = () => {
               className="bg-gradient-to-r from-purple-600 to-indigo-600"
             >
               Criar Categoria
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Categories List Dialog */}
+      <Dialog open={isCategoriesListOpen} onOpenChange={setIsCategoriesListOpen}>
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle>Categorias Existentes</DialogTitle>
+            <DialogDescription>
+              Lista de todas as categorias disponíveis
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 max-h-[400px] overflow-y-auto">
+            {categories.length === 0 ? (
+              <p className="text-center text-muted-foreground">Nenhuma categoria encontrada</p>
+            ) : (
+              categories.map(category => (
+                <div 
+                  key={category.id} 
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                >
+                  <div>
+                    <p className="font-medium">{category.categoryName}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Criado por: {category.user?.name || category.user?.id}
+                    </p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDeleteCategory(category.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Deletar
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsCategoriesListOpen(false)}
+            >
+              Fechar
             </Button>
           </DialogFooter>
         </DialogContent>

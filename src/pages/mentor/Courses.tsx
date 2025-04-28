@@ -5,13 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Search, Plus } from "lucide-react"
 import { CourseMentorAPI } from '@/api/mentor/controllers/CourseMentorAPI'
 import { CourseLessonMentorAPI } from '@/api/mentor/controllers/CourseLessonMentorAPI'
-import { CourseLessonCategoryMentorAPI } from '@/api/mentor/controllers/CourseLessonCategoryMentorAPI'
 import { CourseResponseDTO } from '@/api/dtos/courseDtos'
-import { CourseLessonResponseDTO } from '@/api/dtos/courseLessonDtos'
-import { CourseLessonCategoryResponseDTO } from '@/api/dtos/courseLessonCategoryDtos'
 import { CourseCard } from "@/components/mentor/CourseCard"
 import { CourseDialogs } from "@/components/mentor/CourseDialogs"
-import { LessonDialogs, NewCategoryDialog } from "@/components/mentor/LessonDialogs"
 
 interface CourseForm {
   name: string
@@ -32,7 +28,6 @@ const MentorCourses = () => {
   const [courses, setCourses] = useState<EnhancedCourse[]>([])
   const [isNewCourseOpen, setIsNewCourseOpen] = useState(false)
   const [isEditCourseOpen, setIsEditCourseOpen] = useState(false)
-  const [isNewLessonOpen, setIsNewLessonOpen] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState<EnhancedCourse | null>(null)
   const [courseForm, setCourseForm] = useState<CourseForm>({
     name: "",
@@ -43,25 +38,10 @@ const MentorCourses = () => {
   })
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [categories, setCategories] = useState<CourseLessonCategoryResponseDTO[]>([])
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("")
-  const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false)
-  const [newCategoryName, setNewCategoryName] = useState("")
-  const [lessonForm, setLessonForm] = useState({
-    name: "",
-    duration: 0,
-    files: ""
-  })
 
   useEffect(() => {
     fetchCourses()
   }, [])
-
-  useEffect(() => {
-    if (selectedCourse && isNewLessonOpen) {
-      fetchCategories(selectedCourse.id)
-    }
-  }, [selectedCourse, isNewLessonOpen])
 
   const fetchCourses = async () => {
     try {
@@ -90,53 +70,6 @@ const MentorCourses = () => {
     }
   }
 
-  const fetchCategories = async (courseId: string) => {
-    try {
-      setIsLoading(true)
-      const categories = await CourseLessonCategoryMentorAPI.getCategoriesByCourse(courseId)
-      setCategories(categories)
-      if (categories.length > 0) {
-        setSelectedCategoryId(categories[0].id)
-      }
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao carregar categorias",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleNewCategory = async () => {
-    if (!selectedCourse) return
-
-    try {
-      setIsLoading(true)
-      const newCategory = await CourseLessonCategoryMentorAPI.createCategory({
-        courseId: selectedCourse.id,
-        name: newCategoryName
-      })
-      setCategories([...categories, newCategory])
-      setSelectedCategoryId(newCategory.id)
-      setNewCategoryName("")
-      setIsNewCategoryOpen(false)
-      toast({
-        title: "Categoria criada",
-        description: "A nova categoria foi criada com sucesso!"
-      })
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao criar categoria",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const handleNewCourse = async () => {
     try {
       setIsLoading(true)
@@ -146,7 +79,7 @@ const MentorCourses = () => {
         level: courseForm.level,
         duration: courseForm.duration,
         categoryIds: [],
-        creatorId: 'current-user-id',
+        creatorId: 'current-user-id', // Replace with actual user ID logic
         imageUrl: courseForm.imageUrl || undefined
       }
 
@@ -214,56 +147,6 @@ const MentorCourses = () => {
     }
   }
 
-  const handleNewLesson = async () => {
-    if (!selectedCourse) return
-
-    try {
-      setIsLoading(true)
-      
-      // Parse file URLs from comma-separated string
-      const fileUrls = lessonForm.files
-        .split(',')
-        .map(url => url.trim())
-        .filter(url => url.length > 0)
-
-      const lessonData = {
-        courseId: selectedCourse.id,
-        courseLessonCategoryId: selectedCategoryId,
-        files: fileUrls,
-        name: lessonForm.name,
-        duration: lessonForm.duration
-      }
-
-      const newLesson = await CourseLessonMentorAPI.createLesson(lessonData)
-      
-      setCourses(courses.map(c => 
-        c.id === selectedCourse.id 
-          ? { 
-              ...c, 
-              lessonCount: c.lessonCount + 1,
-              materialCount: c.materialCount + fileUrls.length
-            }
-          : c
-      ))
-      
-      setIsNewLessonOpen(false)
-      setLessonForm({ name: "", duration: 0, files: "" })
-      
-      toast({
-        title: "Aula adicionada",
-        description: "A nova aula foi adicionada com sucesso!"
-      })
-    } catch (error) {
-      toast({
-        title: "Erro",
-        description: "Falha ao adicionar a aula",
-        variant: "destructive"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   const filteredCourses = courses.filter(course =>
     course.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -319,9 +202,8 @@ const MentorCourses = () => {
                 setIsEditCourseOpen(true)
               }}
               onNewLesson={() => {
-                setSelectedCourse(course)
-                setLessonForm({ name: "", duration: 0, files: "" })
-                setIsNewLessonOpen(true)
+                // Instead of opening LessonDialogs here, redirect to the course page
+                window.location.href = `/mentor/courses/${course.id}`
               }}
             />
           ))}
@@ -348,28 +230,8 @@ const MentorCourses = () => {
         isLoading={isLoading}
         isEdit
       />
-
-      <LessonDialogs
-        isOpen={isNewLessonOpen}
-        onOpenChange={setIsNewLessonOpen}
-        onSubmit={handleNewLesson}
-        isLoading={isLoading}
-        categories={categories}
-        selectedCategoryId={selectedCategoryId}
-        onCategoryChange={setSelectedCategoryId}
-        onNewCategoryOpen={() => setIsNewCategoryOpen(true)}
-      />
-
-      <NewCategoryDialog
-        isOpen={isNewCategoryOpen}
-        onOpenChange={setIsNewCategoryOpen}
-        onSubmit={handleNewCategory}
-        isLoading={isLoading}
-        categoryName={newCategoryName}
-        onCategoryNameChange={setNewCategoryName}
-      />
     </div>
   )
 }
 
-export default MentorCourses;
+export default MentorCourses

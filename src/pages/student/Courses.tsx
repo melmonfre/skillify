@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -15,98 +15,68 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { BookOpen, Clock, Filter, Search } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { CourseStudentAPI } from "@/api/student/controllers/CourseStudentAPI"
-import { CourseResponseDTO } from "@/api/dtos/courseDtos"
-import { useToast } from "@/hooks/use-toast"
+} from "@/components/ui/card";
+import { BookOpen, Clock, Filter, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { CourseStudentAPI } from "@/api/student/controllers/CourseStudentAPI";
+import { CourseResponseDTO } from "@/api/dtos/courseDtos";
+import { useToast } from "@/hooks/use-toast";
 
 const levelLabels = {
   beginner: "Iniciante",
   intermediate: "Intermediário",
   advanced: "Avançado",
-}
+};
 
-const categories = ["Todos", "Frontend", "Backend", "Programação", "DevOps", "Mobile"]
-const levels = ["Todos", "beginner", "intermediate", "advanced"]
+const categories = ["Todos", "Frontend", "Backend", "Programação", "DevOps", "Mobile"];
+const levels = ["Todos", "beginner", "intermediate", "advanced"];
 
 const Courses = () => {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("Todos")
-  const [selectedLevel, setSelectedLevel] = useState("Todos")
-  const [allCourses, setAllCourses] = useState<CourseResponseDTO[]>([])
-  const [enrolledCourses, setEnrolledCourses] = useState<CourseResponseDTO[]>([])
-  const [loading, setLoading] = useState(true)
-  const { toast } = useToast()
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [selectedLevel, setSelectedLevel] = useState("Todos");
+  const [allCourses, setAllCourses] = useState<CourseResponseDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchCourses() {
       try {
-        setLoading(true)
-        const [all, enrolled] = await Promise.all([
-          CourseStudentAPI.getAllCourses(),
-          CourseStudentAPI.getEnrolledCourses()
-        ])
-        
-        setAllCourses(all)
-        setEnrolledCourses(enrolled)
+        setLoading(true);
+        const courses = await CourseStudentAPI.getAllCourses();
+        setAllCourses(courses);
       } catch (error) {
         toast({
           title: "Erro ao carregar cursos",
           description: "Não foi possível carregar os cursos. Tente novamente mais tarde.",
           variant: "destructive",
-        })
+        });
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    fetchCourses()
-  }, [toast])
+    fetchCourses();
+  }, [toast]);
 
   const filteredCourses = allCourses.filter((course) => {
     const matchesSearch = course.name
       .toLowerCase()
-      .includes(searchQuery.toLowerCase())
+      .includes(searchQuery.toLowerCase());
     const matchesCategory =
-      selectedCategory === "Todos" || 
-      Array.from(course.categories).some(cat => cat.categoryName === selectedCategory)
+      selectedCategory === "Todos" ||
+      Array.from(course.categories).some(cat => cat.categoryName === selectedCategory);
     const matchesLevel = 
-      selectedLevel === "Todos" || course.level === selectedLevel
-    return matchesSearch && matchesCategory && matchesLevel
-  })
-
-  const handleEnroll = async (courseId: string) => {
-    try {
-      await CourseStudentAPI.enrollInCourse(courseId)
-      const course = allCourses.find(c => c.id === courseId)
-      if (course) {
-        setEnrolledCourses([...enrolledCourses, course])
-      }
-      toast({
-        title: "Inscrição realizada",
-        description: "Você se inscreveu no curso com sucesso!",
-      })
-    } catch (error) {
-      toast({
-        title: "Erro na inscrição",
-        description: "Não foi possível se inscrever no curso.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const isEnrolled = (courseId: string) => {
-    return enrolledCourses.some(course => course.id === courseId)
-  }
+      selectedLevel === "Todos" || course.level === selectedLevel;
+    return matchesSearch && matchesCategory && matchesLevel;
+  });
 
   if (loading) {
     return (
       <div className="container py-8">
         <p className="text-center">Carregando cursos...</p>
       </div>
-    )
+    );
   }
 
   return (
@@ -192,33 +162,20 @@ const Courses = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="flex-grow">
-              {isEnrolled(course.id) && (
-                <div className="mb-4">
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Criado por: {course.creator.name}
-                  </div>
-                </div>
-              )}
+              <div className="text-sm text-muted-foreground mb-2">
+                Criado por: {course.creator.name}
+              </div>
             </CardContent>
             <CardFooter className="mt-auto">
-              {isEnrolled(course.id) ? (
-                <Button className="w-full" asChild>
-                  <a href={`/cursos/${course.id}`}>Continuar</a>
-                </Button>
-              ) : (
-                <Button 
-                  className="w-full" 
-                  onClick={() => handleEnroll(course.id)}
-                >
-                  Inscrever-se
-                </Button>
-              )}
+              <Button className="w-full" asChild>
+                <a href={`/dashboard/cursos/${course.id}`}>Ver Curso</a>
+              </Button>
             </CardFooter>
           </Card>
         ))}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Courses
+export default Courses;
