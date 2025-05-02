@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Plus, ArrowLeft, Trash2, ImageIcon, TextCursorInput, Edit2 } from "lucide-react";
+import { Plus, ArrowLeft, Trash2, ImageIcon, TextCursorInput, Edit2, Video } from "lucide-react";
 import { CourseMentorAPI } from "@/api/mentor/controllers/CourseMentorAPI";
 import { CourseLessonMentorAPI } from "@/api/mentor/controllers/CourseLessonMentorAPI";
 import { CourseLessonContentMentorAPI } from "@/api/mentor/controllers/CourseLessonContentMentorAPI";
@@ -419,13 +419,27 @@ const MentorCoursePage = () => {
                     <ImageIcon className="h-4 w-4 mr-2" />
                     Imagem
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="border-slate-700 hover:bg-slate-800"
+                    onClick={() =>
+                      updateContentItem(lessonId, item.id, "type", CourseLessonContentType.VIDEO)
+                    }
+                  >
+                    <Video className="h-4 w-4 mr-2" />
+                    Vídeo
+                  </Button>
                 </div>
               </div>
             ) : (
               <div className="border border-slate-800 rounded-lg p-4 bg-white/5">
                 <div className="flex justify-between items-center mb-2">
                   <Badge variant="outline" className="bg-slate-900 text-slate-300">
-                    {item.type === CourseLessonContentType.TEXT ? "Texto" : "Imagem"}
+                    {item.type === CourseLessonContentType.TEXT
+                      ? "Texto"
+                      : item.type === CourseLessonContentType.IMAGE
+                      ? "Imagem"
+                      : "Vídeo"}
                   </Badge>
                   {(contentItems[lessonId]?.length || 0) > 1 && (
                     <Button
@@ -452,13 +466,23 @@ const MentorCoursePage = () => {
                       className="bg-slate-900 border-slate-800 text-white"
                       value={item.value}
                       onChange={(e) => updateContentItem(lessonId, item.id, "value", e.target.value)}
-                      placeholder="URL da imagem..."
+                      placeholder={item.type === CourseLessonContentType.IMAGE ? "URL da imagem..." : "URL do vídeo..."}
                     />
-                    {item.value && (
+                    {item.value && item.type === CourseLessonContentType.IMAGE && (
                       <div className="mt-2">
                         <img
                           src={item.value}
                           alt="Preview"
+                          className="max-h-40 rounded-md border border-slate-800"
+                          onError={(e) => (e.currentTarget.style.display = "none")}
+                        />
+                      </div>
+                    )}
+                    {item.value && item.type === CourseLessonContentType.VIDEO && (
+                      <div className="mt-2">
+                        <video
+                          src={item.value}
+                          controls
                           className="max-h-40 rounded-md border border-slate-800"
                           onError={(e) => (e.currentTarget.style.display = "none")}
                         />
@@ -591,7 +615,11 @@ const MentorCoursePage = () => {
                             <div className="flex justify-between items-center mb-2">
                               <div className="flex items-center gap-2">
                                 <Badge variant="outline" className="bg-slate-900 text-slate-300">
-                                  {content.type === CourseLessonContentType.TEXT ? "Texto" : "Imagem"}
+                                  {content.type === CourseLessonContentType.TEXT
+                                    ? "Texto"
+                                    : content.type === CourseLessonContentType.IMAGE
+                                    ? "Imagem"
+                                    : "Vídeo"}
                                 </Badge>
                                 <span className="text-slate-400 text-sm">
                                   Posição {content.position}
@@ -609,10 +637,17 @@ const MentorCoursePage = () => {
                             </div>
                             {content.type === CourseLessonContentType.TEXT ? (
                               <p className="text-white whitespace-pre-wrap">{content.value}</p>
-                            ) : (
+                            ) : content.type === CourseLessonContentType.IMAGE ? (
                               <img
                                 src={content.value}
                                 alt="Content"
+                                className="max-w-full h-auto rounded-md border border-slate-800"
+                                onError={(e) => (e.currentTarget.style.display = "none")}
+                              />
+                            ) : (
+                              <video
+                                src={content.value}
+                                controls
                                 className="max-w-full h-auto rounded-md border border-slate-800"
                                 onError={(e) => (e.currentTarget.style.display = "none")}
                               />

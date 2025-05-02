@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -16,10 +16,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   BookOpen,
   Clock,
-  Star,
   Users,
   CheckCircle,
-  PlayCircle,
   FileText,
   Download,
   ChevronRight,
@@ -158,13 +156,7 @@ export default function CourseDetails() {
               </Avatar>
               <div>
                 <p className="text-sm font-medium">{course.creator.name}</p>
-                <p className="text-xs text-muted-foreground">Desenvolvedor Senior</p>
               </div>
-            </div>
-
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-              <span className="text-sm font-medium">4.8</span>
             </div>
 
             <div className="flex items-center gap-1">
@@ -201,7 +193,7 @@ export default function CourseDetails() {
 
           <div className="flex flex-col sm:flex-row gap-4">
             <Button className="flex-1">
-              <PlayCircle className="mr-2 h-4 w-4" />
+              <BookOpen className="mr-2 h-4 w-4" />
               Continuar curso
             </Button>
             <Link to={`/cursos/${course.id}/todas-aulas`}>
@@ -215,13 +207,13 @@ export default function CourseDetails() {
         <div className="md:w-80 space-y-4">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Última aula assistida</CardTitle>
+              <CardTitle className="text-lg">Última aula visualizada</CardTitle>
             </CardHeader>
             <CardContent>
               {lastLesson && lastContent ? (
-                <div className="flex items-start gap-3">
+                <div className="flex items-center gap-3">
                   <div className="bg-primary/10 p-2 rounded-md">
-                    <PlayCircle className="h-6 w-6 text-primary" />
+                    <BookOpen className="h-6 w-6 text-primary" />
                   </div>
                   <div>
                     <h3 className="font-medium">{lastLesson.name}</h3>
@@ -229,12 +221,12 @@ export default function CourseDetails() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhuma aula assistida ainda</p>
+                <p className="text-sm text-muted-foreground">Nenhuma aula visualizada ainda</p>
               )}
             </CardContent>
             <CardFooter>
               <Button className="w-full" disabled={!lastLesson}>
-                Continuar assistindo
+                Continuar visualizando
               </Button>
             </CardFooter>
           </Card>
@@ -272,7 +264,6 @@ export default function CourseDetails() {
         <TabsList>
           <TabsTrigger value="content">Conteúdo</TabsTrigger>
           <TabsTrigger value="about">Sobre o curso</TabsTrigger>
-          <TabsTrigger value="reviews">Avaliações</TabsTrigger>
         </TabsList>
 
         <TabsContent value="content" className="space-y-4 mt-6">
@@ -292,7 +283,7 @@ export default function CourseDetails() {
                         {isCompleted ? (
                           <CheckCircle className="h-5 w-5 text-green-500" />
                         ) : (
-                          <PlayCircle className="h-5 w-5 text-muted-foreground" />
+                          <BookOpen className="h-5 w-5 text-muted-foreground" />
                         )}
                         <div>
                           <p className={`${isCompleted ? "text-muted-foreground" : "font-medium"}`}>
@@ -302,7 +293,7 @@ export default function CourseDetails() {
                         </div>
                       </div>
                       <Button variant="ghost" size="sm">
-                        {isCompleted ? "Rever" : "Assistir"}
+                        {isCompleted ? "Rever" : "Visualizar"}
                       </Button>
                     </div>
                   );
@@ -325,32 +316,6 @@ export default function CourseDetails() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p>{course.description}</p>
-              <div>
-                <h3 className="font-medium mb-2">O que você aprenderá:</h3>
-                <ul className="list-disc pl-5 space-y-1">
-                  <li>Fundamentos de programação</li>
-                  <li>Desenvolvimento web completo</li>
-                  <li>Boas práticas de codificação</li>
-                  <li>Gerenciamento de projetos</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-medium mb-2">Pré-requisitos:</h3>
-                <p>Conhecimentos básicos de lógica de programação são recomendados, mas não obrigatórios.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="reviews" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Avaliações dos alunos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-center text-muted-foreground py-8">
-                As avaliações serão exibidas aqui.
-              </p>
             </CardContent>
           </Card>
         </TabsContent>

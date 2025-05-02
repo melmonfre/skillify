@@ -23,6 +23,7 @@ import ContinueChallenge from "@/pages/student/ContinueChallenge";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import StudentMessages from "@/pages/student/Messages";
+import CourseLessonPage from "@/pages/student/CourseLessonPage";
 
 export const StudentRoutes = () => {
   return (
@@ -50,6 +51,7 @@ export const StudentRoutes = () => {
       <Route path="configuracoes" element={<Settings />} />
       <Route path="planos/:id" element={<PlanDetails />} />
       <Route path="mensagens" element={<StudentMessages />} />
+      <Route path="/cursos/:courseId/visualizar/aulas/:lessonId?" element={<CourseLessonPage />} />
     </Routes>
   );
 };

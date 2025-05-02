@@ -3,7 +3,8 @@ import { CourseLessonResponseDTO } from './courseLessonDtos';
 
 export enum CourseLessonContentType {
   TEXT = 'TEXT',
-  IMAGE = 'IMAGE'
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO'
 }
 
 export interface CourseLessonContentCreateDTO {
