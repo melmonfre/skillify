@@ -3,7 +3,8 @@ import { ClassroomResponseDTO } from './classroomDtos';
 
 export enum GoalType {
   QUESTION = "QUESTION",
-  ESSAY = "ESSAY"
+  ESSAY = "ESSAY",
+  LESSON = "LESSON"
 }
 
 export interface GoalRequestDTO {

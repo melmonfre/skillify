@@ -3,9 +3,10 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, BookOpen } from "lucide-react";
+import { ChevronLeft, BookOpen, CheckCircle } from "lucide-react";
 import { CourseStudentAPI } from "@/api/student/controllers/CourseStudentAPI";
 import { CourseLessonContentStudentAPI } from "@/api/student/controllers/CourseLessonContentStudentAPI";
+import { CourseLessonContentWatchEventStudentAPI } from "@/api/student/controllers/CourseLessonContentWatchEventStudentAPI";
 import { CourseLessonResponseDTO } from "@/api/dtos/courseLessonDtos";
 import { CourseLessonContentResponseDTO, CourseLessonContentType } from "@/api/dtos/courseLessonContentDtos";
 import { useToast } from "@/hooks/use-toast";
@@ -93,6 +94,43 @@ export default function CourseLessonPage() {
     setSelectedLesson(lesson);
   };
 
+  const handleCompleteLesson = async () => {
+    if (!selectedLesson || !courseId) {
+      toast({
+        title: "Erro",
+        description: "Nenhuma aula selecionada ou curso inválido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Assuming the first content item is representative for the watch event
+      const content = selectedLesson.content[0];
+      if (!content) {
+        throw new Error("Nenhum conteúdo disponível para esta aula.");
+      }
+
+      const watchEvent = await CourseLessonContentWatchEventStudentAPI.createWatchEvent({
+        courseLessonContentId: content.id,
+        studentId: localStorage.getItem("userId"), // Replace with actual student ID from auth context
+      });
+
+      console.log("Watch event created:", watchEvent);
+      toast({
+        title: "Aula Concluída",
+        description: "A aula foi marcada como concluída com sucesso!",
+      });
+    } catch (error) {
+      console.error("Error completing lesson:", error);
+      toast({
+        title: "Erro ao Concluir Aula",
+        description: "Não foi possível marcar a aula como concluída. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   console.log("Rendering with loading:", loading, "lessons length:", lessons.length, "selectedLesson:", selectedLesson);
 
   if (loading) {
@@ -154,10 +192,20 @@ export default function CourseLessonPage() {
       <div className="flex-1">
         <Card>
           <CardHeader>
-            <CardTitle>{selectedLesson?.name || "Selecione uma aula"}</CardTitle>
-            {selectedLesson && (
-              <p className="text-sm text-muted-foreground">Duração: {selectedLesson.duration} minutos</p>
-            )}
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>{selectedLesson?.name || "Selecione uma aula"}</CardTitle>
+                {selectedLesson && (
+                  <p className="text-sm text-muted-foreground">Duração: {selectedLesson.duration} minutos</p>
+                )}
+              </div>
+              {selectedLesson && (
+                <Button onClick={handleCompleteLesson} variant="default" size="sm">
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Concluir Aula
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {selectedLesson ? (

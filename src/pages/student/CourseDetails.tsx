@@ -32,6 +32,7 @@ import { CourseLessonContentResponseDTO } from "@/api/dtos/courseLessonContentDt
 import { CourseLessonContentWatchEventResponseDTO } from "@/api/dtos/courseLessonContentWatchEventDtos";
 import { CourseLessonCategoryResponseDTO } from "@/api/dtos/courseLessonCategoryDtos";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 // Mock level labels for consistency
 const levelLabels = {
@@ -48,6 +49,7 @@ export default function CourseDetails() {
   const [watchEvents, setWatchEvents] = useState<CourseLessonContentWatchEventResponseDTO[]>([]);
   const [categories, setCategories] = useState<CourseLessonCategoryResponseDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -225,7 +227,11 @@ export default function CourseDetails() {
               )}
             </CardContent>
             <CardFooter>
-              <Button className="w-full" disabled={!lastLesson}>
+              <Button className="w-full" disabled={!lastLesson}   onClick={() => {
+    if (lastLesson) {
+      navigate(`/cursos/${course.id}/visualizar/aulas/${lastLesson.id}`);
+    }
+  }}>
                 Continuar visualizando
               </Button>
             </CardFooter>
@@ -292,7 +298,11 @@ export default function CourseDetails() {
                           <p className="text-xs text-muted-foreground">{lesson.duration} minutos</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm"   onClick={() => {
+     
+      navigate(`/dashboard/cursos/${course.id}/visualizar/aulas/${lesson.id}`);
+    
+  }}>
                         {isCompleted ? "Rever" : "Visualizar"}
                       </Button>
                     </div>

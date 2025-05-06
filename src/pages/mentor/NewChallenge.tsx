@@ -9,13 +9,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { 
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { GoalMentorAPI } from "@/api/mentor/controllers/GoalMentorAPI";
 import { GoalRequestDTO, GoalType } from "@/api/dtos/goalDtos";
 import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI";
@@ -24,7 +32,7 @@ import { ClassroomResponseDTO } from "@/api/dtos/classroomDtos";
 export default function NewChallenge() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [number, setNumber] = useState("1");
@@ -34,9 +42,11 @@ export default function NewChallenge() {
   const [isPublic, setIsPublic] = useState(true);
   const [classroomIds, setClassroomIds] = useState<string[]>([]);
   const [availableClassrooms, setAvailableClassrooms] = useState<ClassroomResponseDTO[]>([]);
+  const [selectedCourses, setSelectedCourses] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [classroomsLoading, setClassroomsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   // Fetch classrooms when component mounts
   useEffect(() => {
@@ -56,12 +66,32 @@ export default function NewChallenge() {
     fetchClassrooms();
   }, []);
 
+  const handleCourseToggle = (courseId: string) => {
+    setSelectedCourses((prev) =>
+      prev.includes(courseId)
+        ? prev.filter((id) => id !== courseId)
+        : [...prev, courseId]
+    );
+  };
+
+  const handleClassroomSelect = () => {
+    const filteredClassroomIds = availableClassrooms
+      .filter((classroom) =>
+        classroom.courses.some((course) => selectedCourses.includes(course.id))
+      )
+      .map((classroom) => classroom.id);
+
+    setClassroomIds([...new Set([...classroomIds, ...filteredClassroomIds])]);
+    setDialogOpen(false);
+    setSelectedCourses([]);
+  };
+
   const handleCreateChallenge = async () => {
     if (!title.trim()) {
       toast({
         title: "Erro ao criar desafio",
         description: "O título do desafio é obrigatório",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -70,7 +100,7 @@ export default function NewChallenge() {
       toast({
         title: "Erro ao criar desafio",
         description: "O número de itens deve ser maior que zero",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -79,7 +109,7 @@ export default function NewChallenge() {
       toast({
         title: "Erro ao criar desafio",
         description: "A data limite é obrigatória",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
@@ -87,7 +117,7 @@ export default function NewChallenge() {
     try {
       setLoading(true);
       const goalData: GoalRequestDTO = {
-        classroomIds: isPublic ? availableClassrooms.map(c => c.id) : classroomIds,
+        classroomIds: isPublic ? availableClassrooms.map((c) => c.id) : classroomIds,
         number: Number(number),
         type: goalType,
         openingDate: new Date(openingDate).toISOString(),
@@ -106,7 +136,7 @@ export default function NewChallenge() {
       toast({
         title: "Erro ao criar desafio",
         description: "Ocorreu um erro ao salvar o desafio. Tente novamente.",
-        variant: "destructive"
+        variant: "destructive",
       });
       console.error("Error creating goal:", error);
     } finally {
@@ -129,20 +159,30 @@ export default function NewChallenge() {
     );
   }
 
+  // Collect all unique courses from available classrooms
+  const allCourses = Array.from(
+    new Set(
+      availableClassrooms.flatMap((classroom) =>
+        classroom.courses.map((course) => ({ id: course.id, name: course.name }))
+      )
+    )
+  );
+
   return (
     <div className="container py-8 space-y-6">
-      <Link to="/mentor/desafios" className="inline-flex items-center text-sm text-muted-foreground hover:text-primary">
+      <Link
+        to="/mentor/desafios"
+        className="inline-flex items-center text-sm text-muted-foreground hover:text-primary"
+      >
         <ArrowLeft className="mr-2 h-4 w-4" />
         Voltar para desafios
       </Link>
-      
+
       <div>
         <h1 className="text-3xl font-bold">Novo Desafio</h1>
-        <p className="text-muted-foreground">
-          Crie um novo desafio para seus alunos
-        </p>
+        <p className="text-muted-foreground">Crie um novo desafio para seus alunos</p>
       </div>
-      
+
       <div className="grid gap-8 md:grid-cols-3">
         <div className="md:col-span-2 space-y-8">
           <Card>
@@ -156,7 +196,7 @@ export default function NewChallenge() {
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="description">Descrição</Label>
                 <Textarea
@@ -167,7 +207,7 @@ export default function NewChallenge() {
                   onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
-              
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="number">Quantidade</Label>
@@ -179,26 +219,30 @@ export default function NewChallenge() {
                     onChange={(e) => setNumber(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Tipo de Desafio</Label>
-                  <RadioGroup 
+                  <RadioGroup
                     value={goalType}
                     onValueChange={(value) => setGoalType(value as GoalType)}
                     className="flex flex-col sm:flex-row gap-4"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value={GoalType.QUESTION} id="question" />
-                      <Label htmlFor="question" className="font-normal">Questões</Label>
+                      <Label htmlFor="question" className="font-normal">
+                        Questões
+                      </Label>
                     </div>
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value={GoalType.ESSAY} id="essay" />
-                      <Label htmlFor="essay" className="font-normal">Redações</Label>
+                      <Label htmlFor="essay" className="font-normal">
+                        Redações
+                      </Label>
                     </div>
                   </RadioGroup>
                 </div>
               </div>
-              
+
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="openingDate">Data de Início</Label>
@@ -213,7 +257,7 @@ export default function NewChallenge() {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="finalDate">Data Limite</Label>
                   <div className="relative">
@@ -231,54 +275,41 @@ export default function NewChallenge() {
             </CardContent>
           </Card>
         </div>
-        
+
         <div className="space-y-6">
           <Card>
             <CardContent className="p-6 space-y-4">
               <h3 className="text-lg font-bold">Configurações do Desafio</h3>
-              
+
               <div className="flex items-center justify-between py-2">
                 <div className="space-y-0.5">
                   <Label>Desafio Público</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Disponível para todas as turmas
-                  </p>
+                  <p className="text-sm text-muted-foreground">Disponível para todas as turmas</p>
                 </div>
-                <Switch 
-                  checked={isPublic} 
-                  onCheckedChange={setIsPublic} 
-                />
+                <Switch checked={isPublic} onCheckedChange={setIsPublic} />
               </div>
-              
+
               {!isPublic && (
                 <div className="space-y-2 pt-2">
                   <Label>Selecionar Turmas</Label>
-                  <Select
-                    onValueChange={(value) => {
-                      if (!classroomIds.includes(value)) {
-                        setClassroomIds([...classroomIds, value]);
-                      }
-                    }}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setDialogOpen(true)}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione turmas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {availableClassrooms.map(classroom => (
-                        <SelectItem key={classroom.id} value={classroom.id}>
-                          {classroom.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Adicionar turmas por curso
+                  </Button>
                   <div className="mt-2 space-y-1">
-                    {classroomIds.map(id => (
+                    {classroomIds.map((id) => (
                       <div key={id} className="flex items-center justify-between text-sm">
-                        <span>{availableClassrooms.find(c => c.id === id)?.name}</span>
+                        <span>{availableClassrooms.find((c) => c.id === id)?.name}</span>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => setClassroomIds(classroomIds.filter(cid => cid !== id))}
+                          onClick={() =>
+                            setClassroomIds(classroomIds.filter((cid) => cid !== id))
+                          }
                         >
                           <Trash className="h-4 w-4 text-destructive" />
                         </Button>
@@ -287,30 +318,26 @@ export default function NewChallenge() {
                   </div>
                 </div>
               )}
-              
+
               <div className="flex items-center justify-between py-2 border-t">
                 <div className="space-y-0.5">
                   <Label>Total de Itens</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {goalType === GoalType.QUESTION ? "Questões" : "Redações"}
-                  </p>
+                  <p className="text-sm text-muted-foreground"> {goalType === GoalType.QUESTION ? "Questões" : goalType === GoalType.ESSAY ? "Redações" : "Aulas"} </p>
                 </div>
                 <span className="font-bold">{number}</span>
               </div>
-              
+
               <div className="flex items-center justify-between py-2 border-t">
                 <div className="space-y-0.5">
                   <Label>Turmas Atribuídas</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Número de turmas
-                  </p>
+                  <p className="text-sm text-muted-foreground">Número de turmas</p>
                 </div>
                 <span className="font-bold">
                   {isPublic ? availableClassrooms.length : classroomIds.length}
                 </span>
               </div>
-              
-              <Button 
+
+              <Button
                 onClick={handleCreateChallenge}
                 className="w-full mt-4"
                 disabled={loading || classroomsLoading}
@@ -319,7 +346,7 @@ export default function NewChallenge() {
               </Button>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-6">
               <h3 className="text-lg font-bold mb-2">Dicas para Desafios</h3>
@@ -341,6 +368,43 @@ export default function NewChallenge() {
           </Card>
         </div>
       </div>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Selecionar Cursos</DialogTitle>
+            <DialogDescription>
+              Escolha os cursos para adicionar as turmas correspondentes ao desafio.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Cursos</Label>
+              <div className="max-h-40 overflow-y-auto border rounded-md p-2">
+                {allCourses.map((course) => (
+                  <div key={course.id} className="flex items-center space-x-2 py-1">
+                    <input
+                      type="checkbox"
+                      id={`course-${course.id}`}
+                      checked={selectedCourses.includes(course.id)}
+                      onChange={() => handleCourseToggle(course.id)}
+                    />
+                    <label htmlFor={`course-${course.id}`}>{course.name}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              onClick={handleClassroomSelect}
+              disabled={selectedCourses.length === 0}
+            >
+              Adicionar Turmas
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
