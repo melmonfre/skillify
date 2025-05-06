@@ -58,7 +58,7 @@ const getChallengeDescription = (goal: GoalResponseDTO): string => {
 
 // Utility function to count completed executions for a goal
 const getCompletedCount = (goalId: string, executions: GoalExecutionResponseDTO[]): number => {
-  return executions.filter((execution) => execution.goalId === goalId).length;
+  return executions.filter((execution) => execution.goal.id === goalId).length;
 };
 
 export default function Challenges() {
@@ -78,6 +78,7 @@ export default function Challenges() {
         ]);
         setGoals(activeGoals);
         setExecutions(goalExecutions);
+        console.log(goalExecutions)
       } catch (err) {
         setError("Falha ao carregar os desafios ou progressos. Tente novamente mais tarde.");
         console.error(err);

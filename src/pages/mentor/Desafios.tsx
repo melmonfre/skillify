@@ -120,7 +120,7 @@ export default function MentorDesafios() {
                         <CardTitle className="text-xl">
                           {goal.type === GoalType.QUESTION 
                             ? "Desafio de Questões" 
-                            : "Desafio de Redação"}
+                            :(goal.type === GoalType.ESSAY ? "Desafio de Redação" : "Desafio de Aulas")}
                         </CardTitle>
                         {isActive && <Badge>Ativo</Badge>}
                         {isCompleted && (

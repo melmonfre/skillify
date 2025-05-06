@@ -239,6 +239,12 @@ export default function NewChallenge() {
                         Redações
                       </Label>
                     </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value={GoalType.LESSON} id="lesson" />
+                      <Label htmlFor="lesson" className="font-normal">
+                        Aulas
+                      </Label>
+                    </div>
                   </RadioGroup>
                 </div>
               </div>
