@@ -1,46 +1,41 @@
-
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Trophy } from "lucide-react"
-import { cn } from "@/lib/utils"
-
-interface RankingUser {
-  position: number
-  name: string
-  xp: number
-  avatar: string
-  isUser?: boolean
-}
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Trophy } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { StudentRankingPositionDTO } from "@/api/dtos/studentRankingDtos";
 
 interface RankingSectionProps {
-  users: RankingUser[]
+  ranking: StudentRankingPositionDTO[];
+  isUser: (userId: string) => boolean;
+  title?: string;
+  description?: string;
 }
 
-export const RankingSection = ({ users }: RankingSectionProps) => {
+export const RankingSection = ({ ranking, isUser, title = "Ranking Global", description = "Sua posição entre todos os alunos" }: RankingSectionProps) => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Ranking Global</CardTitle>
-        <CardDescription>Sua posição entre todos os alunos</CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {users.map((user) => (
+          {ranking.map((user) => (
             <div
-              key={user.position}
+              key={user.userId}
               className={cn(
                 "flex items-center gap-4 p-4 rounded-lg",
-                user.isUser ? "bg-primary-50" : "hover:bg-gray-50"
+                isUser(user.userId) ? "bg-primary-50" : "hover:bg-gray-50"
               )}
             >
               <span className="font-bold w-8">{user.position}º</span>
               <img
-                src={user.avatar}
-                alt={user.name}
+                src={user.avatar || "/placeholder.svg"}
+                alt={user.userName}
                 className="w-10 h-10 rounded-full"
               />
               <div className="flex-1">
-                <p className="font-medium">{user.name}</p>
-                <p className="text-sm text-muted-foreground">{user.xp} XP</p>
+                <p className="font-medium">{user.userName}</p>
+                <p className="text-sm text-muted-foreground">{user.xpAmount} XP</p>
               </div>
               {user.position <= 3 && (
                 <Trophy
@@ -59,5 +54,5 @@ export const RankingSection = ({ users }: RankingSectionProps) => {
         </div>
       </CardContent>
     </Card>
-  )
-}
+  );
+};

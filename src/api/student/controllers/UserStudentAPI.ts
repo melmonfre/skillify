@@ -2,6 +2,7 @@ import { UserResponseDTO } from '@/api/dtos/userDtos';
 import api from '../../api';
 import { MessageCreateDTO, MessageResponseDTO } from '../../dtos/messageDtos';
 import { LevelProgressResponseDTO } from '@/api/dtos/levelProgressDtos';
+import { StudentRankingResponseDTO } from '@/api/dtos/studentRankingDtos';
 
 // Define RegisterRequest interface to match backend DTO
 interface RegisterRequest {
@@ -99,4 +100,41 @@ export class UserStudentAPI {
       throw error;
     }
   }
+
+  /**
+ * Gets the ranking for a specific classroom
+ * @param classroomId The ID of the classroom
+ * @param page The page number for pagination (default: 0)
+ * @param size The number of items per page (default: 10)
+ * @returns Promise containing the student ranking DTO
+ */
+static async getStudentRanking(classroomId: string, page: number = 0, size: number = 10): Promise<StudentRankingResponseDTO> {
+  try {
+    const response = await api.get<StudentRankingResponseDTO>(`/api/student/users/classroom/${classroomId}/ranking`, {
+      params: { page, size }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching student ranking:', error);
+    throw error;
+  }
+}
+
+/**
+ * Gets the rankings for all classrooms the student is enrolled in
+ * @param page The page number for pagination (default: 0)
+ * @param size The number of items per page (default: 10)
+ * @returns Promise containing a list of student ranking DTOs
+ */
+static async getStudentRankingsForAllClassrooms(page: number = 0, size: number = 10): Promise<StudentRankingResponseDTO[]> {
+  try {
+    const response = await api.get<StudentRankingResponseDTO[]>('/api/student/users/classrooms/rankings', {
+      params: { page, size }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching rankings for all classrooms:', error);
+    throw error;
+  }
+}
 }
