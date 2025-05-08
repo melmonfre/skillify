@@ -1,111 +1,197 @@
+import { useState, useEffect, Dispatch, SetStateAction } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
+import { Book, PenLine, User as UserIcon, Lock } from "lucide-react";
+import { useTheme } from "next-themes";
+import { ProfileTab } from "@/components/settings/ProfileTab";
+import { PasswordChangeTab } from "@/components/settings/PasswordChangeTab";
+import { UserStudentAPI } from "@/api/student/controllers/UserStudentAPI";
+import { UserResponseDTO, UserRole } from "@/api/dtos/userDtos";
+import { LevelProgressResponseDTO } from "@/api/dtos/levelProgressDtos";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-import { useState, useEffect } from "react"
-import { currentUser } from "@/data/mock"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useToast } from "@/components/ui/use-toast"
-import { User } from "@/types"
-import { Book, PenLine, User as UserIcon } from "lucide-react"
-import { useTheme } from "next-themes"
-import { ProfileTab } from "@/components/settings/ProfileTab"
-import { PreferencesTab } from "@/components/settings/PreferencesTab"
-import { AppearanceTab } from "@/components/settings/AppearanceTab"
+interface UserPreferences {
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  weeklyProgress: boolean;
+}
+
+interface User extends UserResponseDTO {
+  preferences: UserPreferences;
+}
 
 const Settings = () => {
-  const { toast } = useToast()
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-  const [user, setUser] = useState<User>({
-    ...currentUser,
-    preferences: {
-      emailNotifications: true,
-      pushNotifications: false,
-      weeklyProgress: true,
-    },
-  })
+  const { toast } = useToast();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [levelProgress, setLevelProgress] = useState<LevelProgressResponseDTO | null>(null);
+  const [themeColor, setThemeColor] = useState("purple");
+  const [themeStyle, setThemeStyle] = useState("default");
 
-  // Estado para as configurações de aparência
-  const [themeColor, setThemeColor] = useState("purple")
-  const [themeStyle, setThemeStyle] = useState("default")
-
-  // Montar componente e aplicar tema inicial
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+    const fetchData = async () => {
+      try {
+        const profile = await UserStudentAPI.getStudentProfile();
+        const progress = await UserStudentAPI.getLevelProgress();
+        console.log("progress: ")
+        console.log(progress)
+        setUser({
+          ...profile,
+          preferences: {
+            emailNotifications: profile.emailNotifications,
+            pushNotifications: profile.pushNotifications,
+            weeklyProgress: profile.weeklyReport,
+          },
+        });
+        setLevelProgress(progress);
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Falha ao carregar dados do perfil.",
+          variant: "destructive",
+        });
+      }
+    };
+    fetchData();
+  }, []);
 
-  // Garantir que o tema escuro seja aplicado ao carregar a página
   useEffect(() => {
-    if (!mounted) return
-    
-    const currentTheme = theme || 'light'
-    const root = document.documentElement
-    root.classList.remove('light', 'dark')
-    root.classList.add(currentTheme)
+    if (!mounted) return;
+    const currentTheme = theme || "light";
+    const root = document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(currentTheme);
+    document.documentElement.style.setProperty(
+      "color-scheme",
+      currentTheme === "dark" ? "dark" : "light"
+    );
+  }, [theme, mounted]);
 
-    // Forçar atualização das cores do tema
-    if (currentTheme === 'dark') {
-      document.documentElement.style.setProperty('color-scheme', 'dark')
-    } else {
-      document.documentElement.style.setProperty('color-scheme', 'light')
-    }
-  }, [theme, mounted])
-
-  // Aplicar classes de tema quando as configurações mudarem
   useEffect(() => {
-    if (!mounted) return
-
-    document.body.classList.remove(
+    if (!mounted) return;
+    const validThemeClasses = [
       "theme-blue",
       "theme-green",
       "theme-pink",
       "theme-orange",
       "theme-minimal",
-      "theme-glass"
-    )
-    document.body.classList.add(`theme-${themeColor}`)
-    if (themeStyle !== "default") {
-      document.body.classList.add(`theme-${themeStyle}`)
+      "theme-glass",
+    ];
+    document.body.classList.remove(...validThemeClasses);
+    if (themeColor && !/\s/.test(themeColor)) {
+      document.body.classList.add(`theme-${themeColor}`);
     }
-  }, [themeColor, themeStyle, mounted])
+    if (themeStyle !== "default" && !/\s/.test(themeStyle)) {
+      document.body.classList.add(`theme-${themeStyle}`);
+    }
+  }, [themeColor, themeStyle, mounted]);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
-    e.preventDefault()
-    toast({
-      title: "Perfil atualizado",
-      description: "Suas informações foram salvas com sucesso.",
-    })
-  }
+  const handleSaveProfile = async (updatedUser: User) => {
+    try {
+      await UserStudentAPI.updateStudentProfile({
+        name: updatedUser.name,
+        email: updatedUser.email,
+        password: "", // Password not updated via this form
+        tel: updatedUser.tel,
+        biography: updatedUser.biography,
+        emailNotifications: updatedUser.preferences.emailNotifications,
+        pushNotifications: updatedUser.preferences.pushNotifications,
+        weeklyReport: updatedUser.preferences.weeklyProgress,
+        studyReminder: updatedUser.studyReminder,
+        role: updatedUser.role,
+      });
+      setUser(updatedUser);
+      toast({
+        title: "Perfil atualizado",
+        description: "Suas informações foram salvas com sucesso.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar o perfil.",
+        variant: "destructive",
+      });
+    }
+  };
 
-  const handleTogglePreference = (
-    key: keyof NonNullable<User["preferences"]>
-  ) => {
-    setUser((prev) => ({
-      ...prev,
+  const handleChangePassword = async (currentPassword: string, newPassword: string) => {
+    try {
+      const updatedProfile = await UserStudentAPI.updateStudentPassword({
+        currentPassword,
+        newPassword,
+      });
+      setUser({
+        ...updatedProfile,
+        preferences: {
+          emailNotifications: updatedProfile.emailNotifications,
+          pushNotifications: updatedProfile.pushNotifications,
+          weeklyProgress: updatedProfile.weeklyReport,
+        },
+      });
+      toast({
+        title: "Senha atualizada",
+        description: "Sua senha foi alterada com sucesso.",
+      });
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || "Falha ao atualizar a senha.";
+      toast({
+        title: "Erro",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const handleTogglePreference = (key: keyof UserPreferences) => {
+    if (!user) return;
+    const updatedUser = {
+      ...user,
       preferences: {
-        ...prev.preferences!,
-        [key]: !prev.preferences![key],
+        ...user.preferences,
+        [key]: !user.preferences[key],
       },
-    }))
-  }
+    };
+    setUser(updatedUser);
+    handleSaveProfile(updatedUser);
+  };
 
   const handleThemeColorChange = (color: string) => {
-    setThemeColor(color)
+    if (/\s/.test(color)) {
+      toast({
+        title: "Erro",
+        description: "A cor do tema não pode conter espaços.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setThemeColor(color);
     toast({
       title: "Cor do tema atualizada",
       description: "A cor de destaque foi alterada com sucesso.",
-    })
-  }
+    });
+  };
 
   const handleThemeStyleChange = (style: string) => {
-    setThemeStyle(style)
+    if (/\s/.test(style)) {
+      toast({
+        title: "Erro",
+        description: "O estilo do tema não pode conter espaços.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setThemeStyle(style);
     toast({
       title: "Estilo visual atualizado",
       description: "O estilo visual foi alterado com sucesso.",
-    })
-  }
+    });
+  };
 
-  // Prevenir flash de conteúdo não tematizado
-  if (!mounted) return null
+  if (!mounted || !user) return null;
 
   return (
     <div className="container max-w-4xl py-8 space-y-8">
@@ -117,12 +203,12 @@ const Settings = () => {
           </p>
         </div>
         <Badge variant="outline" className="text-sm">
-          Estudante
+          {user.role === UserRole.ESTUDANTE ? "Estudante" : user.role}
         </Badge>
       </div>
 
       <Tabs defaultValue="profile" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile" className="flex items-center gap-2">
             <UserIcon className="w-4 h-4" />
             Perfil
@@ -135,36 +221,49 @@ const Settings = () => {
             <PenLine className="w-4 h-4" />
             Aparência
           </TabsTrigger>
+          <TabsTrigger value="password" className="flex items-center gap-2">
+            <Lock className="w-4 h-4" />
+            Senha
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile">
-          <ProfileTab 
+          <ProfileTab
             user={user}
+            levelProgress={levelProgress}
             onUserUpdate={setUser}
             onSubmit={handleSaveProfile}
           />
         </TabsContent>
 
         <TabsContent value="preferences">
-          <PreferencesTab 
-            user={user}
-            onTogglePreference={handleTogglePreference}
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Preferências</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-muted-foreground">Funcionalidade disponível em breve</p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="appearance">
-          <AppearanceTab 
-            theme={theme}
-            onThemeChange={setTheme}
-            themeColor={themeColor}
-            onThemeColorChange={handleThemeColorChange}
-            themeStyle={themeStyle}
-            onThemeStyleChange={handleThemeStyleChange}
-          />
+          <Card>
+            <CardHeader>
+              <CardTitle>Aparência</CardTitle>
+            </CardHeader>
+            <CardContent className="text-center">
+              <p className="text-muted-foreground">Funcionalidade disponível em breve</p>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="password">
+          <PasswordChangeTab onSubmit={handleChangePassword} />
         </TabsContent>
       </Tabs>
     </div>
-  )
-}
+  );
+};
 
-export default Settings
+export default Settings;

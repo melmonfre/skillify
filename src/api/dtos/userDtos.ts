@@ -17,6 +17,7 @@ export enum UserRole {
     weeklyReport: boolean;
     studyReminder: boolean;
     role: UserRole;
+    avatar? : string;
   }
   
   export interface UserUpdateRequest {
