@@ -18,6 +18,8 @@ export enum UserRole {
     studyReminder: boolean;
     role: UserRole;
     avatar? : string;
+    xp? : string;
+    level? : string;
   }
   
   export interface UserUpdateRequest {
