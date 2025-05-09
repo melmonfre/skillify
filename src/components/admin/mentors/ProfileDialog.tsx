@@ -82,7 +82,7 @@ const ProfileDialog = ({ open, onOpenChange, mentorId }: ProfileDialogProps) => 
               <Label>Especialidade</Label>
               <div className="mt-1">
                 <Badge variant="outline" className="bg-primary/10 text-primary">
-                  {mentor.biography ? "Especialidade não especificada" : mentor.biography}
+                  {mentor.expertise ?? "Especialidade não especificada"}
                 </Badge>
               </div>
             </div>
@@ -101,21 +101,6 @@ const ProfileDialog = ({ open, onOpenChange, mentorId }: ProfileDialogProps) => 
             <p className="text-muted-foreground mt-1">
               {mentor.biography || "Biografia não fornecida."}
             </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-6 bg-primary/5 rounded-xl">
-              <p className="text-3xl font-bold text-primary">32</p>
-              <p className="text-sm text-muted-foreground mt-1">Alunos Ativos</p>
-            </div>
-            <div className="text-center p-6 bg-primary/5 rounded-xl">
-              <p className="text-3xl font-bold text-primary">4.8</p>
-              <p className="text-sm text-muted-foreground mt-1">Avaliação Média</p>
-            </div>
-            <div className="text-center p-6 bg-primary/5 rounded-xl">
-              <p className="text-3xl font-bold text-primary">4</p>
-              <p className="text-sm text-muted-foreground mt-1">Cursos Ativos</p>
-            </div>
           </div>
         </div>
       </DialogContent>

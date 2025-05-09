@@ -110,8 +110,16 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="group hover:shadow-lg transition-all hover:-translate-y-1 bg-gradient-to-br from-background to-primary/5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">Disponível em breve</div>
+      
+    </div>
+  )
+}
+
+export default AdminDashboard
+
+
+/*   <Card className="group hover:shadow-lg transition-all hover:-translate-y-1 bg-gradient-to-br from-background to-primary/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Alunos Ativos</CardTitle>
             <Users className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
@@ -379,9 +387,4 @@ const AdminDashboard = () => {
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
-    </div>
-  )
-}
-
-export default AdminDashboard
+      </Dialog>  */

@@ -20,6 +20,7 @@ export enum UserRole {
     avatar? : string;
     xp? : string;
     level? : string;
+    expertise? : string;
   }
   
   export interface UserUpdateRequest {
@@ -27,6 +28,7 @@ export enum UserRole {
     email: string;
     tel: string;
     biography: string;
+    expertise?: string;
     emailNotifications: boolean;
     pushNotifications: boolean;
     weeklyReport: boolean;

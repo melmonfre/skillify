@@ -14,7 +14,7 @@ export interface CourseCreateDTO {
 
 export interface CourseResponseDTO {
   id: string; // Assuming BaseResponseDTO provides this
-  categories: Set<CourseCategoryResponseDTO>;
+  categories: CourseCategoryResponseDTO[];
   level: string;
   name: string;
   description: string;

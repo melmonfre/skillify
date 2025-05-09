@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, BookPlus, Edit, Trash2, StarIcon, GraduationCap, BookOpen, Tag } from "lucide-react"
+import { Search, BookPlus, Edit, Trash2, BookOpen, Tag, GraduationCap } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -59,11 +59,13 @@ const AdminCourses = () => {
   const [categories, setCategories] = useState<CourseCategoryResponseDTO[]>([])
   const [isNewCourseOpen, setIsNewCourseOpen] = useState(false)
   const [isEditCourseOpen, setIsEditCourseOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isDeleteCourseDialogOpen, setIsDeleteCourseDialogOpen] = useState(false)
+  const [isDeleteCategoryDialogOpen, setIsDeleteCategoryDialogOpen] = useState(false)
   const [isNewCategoryOpen, setIsNewCategoryOpen] = useState(false)
   const [isCategoriesListOpen, setIsCategoriesListOpen] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState("")
   const [selectedCourse, setSelectedCourse] = useState<CourseResponseDTO | null>(null)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -149,7 +151,7 @@ const AdminCourses = () => {
     if (!selectedCourse) return
     try {
       await CourseAdminAPI.deleteCourse(selectedCourse.id)
-      setIsDeleteDialogOpen(false)
+      setIsDeleteCourseDialogOpen(false)
       fetchCourses()
       toast({ title: "Curso removido", description: "O curso foi removido com sucesso." })
     } catch (error) {
@@ -177,9 +179,12 @@ const AdminCourses = () => {
     }
   }
 
-  const handleDeleteCategory = async (categoryId: string) => {
+  const handleDeleteCategory = async () => {
+    if (!selectedCategoryId) return
     try {
-      await CourseCategoryAdminAPI.deleteCategory(categoryId)
+      await CourseCategoryAdminAPI.deleteCategory(selectedCategoryId)
+      setIsDeleteCategoryDialogOpen(false)
+      setSelectedCategoryId(null)
       fetchCategories()
       toast({ title: "Categoria removida", description: "A categoria foi removida com sucesso." })
     } catch (error) {
@@ -189,13 +194,18 @@ const AdminCourses = () => {
 
   const openEditDialog = (course: CourseResponseDTO) => {
     setSelectedCourse(course)
-    setSelectedCategories(course.categories.size > 0 ? Array.from(course.categories).map(cat => cat.id) : [])
+    setSelectedCategories(course.categories.length > 0 ? Array.from(course.categories).map(cat => cat.id) : [])
     setIsEditCourseOpen(true)
   }
 
-  const openDeleteDialog = (course: CourseResponseDTO) => {
+  const openDeleteCourseDialog = (course: CourseResponseDTO) => {
     setSelectedCourse(course)
-    setIsDeleteDialogOpen(true)
+    setIsDeleteCourseDialogOpen(true)
+  }
+
+  const openDeleteCategoryDialog = (categoryId: string) => {
+    setSelectedCategoryId(categoryId)
+    setIsDeleteCategoryDialogOpen(true)
   }
 
   const toggleCategory = (categoryId: string) => {
@@ -270,7 +280,7 @@ const AdminCourses = () => {
             <CardHeader className="pb-0">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex flex-wrap gap-2">
-                  {course.categories.size > 0 ? (
+                  {course.categories.length > 0 ? (
                     Array.from(course.categories).map(cat => (
                       <Badge key={cat.id} variant="outline" className="bg-primary/10 text-primary">
                         {cat.categoryName}
@@ -281,10 +291,6 @@ const AdminCourses = () => {
                       Sem categoria
                     </Badge>
                   )}
-                </div>
-                <div className="flex items-center gap-1 text-yellow-500">
-                  <StarIcon className="w-4 h-4 fill-current" />
-                  <span className="text-sm font-medium">4.7</span>
                 </div>
               </div>
               <CardTitle className="text-xl mb-2">{course.name}</CardTitle>
@@ -319,7 +325,7 @@ const AdminCourses = () => {
                   <Button 
                     variant="destructive" 
                     className="flex-1"
-                    onClick={() => openDeleteDialog(course)}
+                    onClick={() => openDeleteCourseDialog(course)}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Remover
@@ -524,19 +530,40 @@ const AdminCourses = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      {/* Delete Course Confirmation Dialog */}
+      <AlertDialog open={isDeleteCourseDialogOpen} onOpenChange={setIsDeleteCourseDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover Curso</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja remover o curso {selectedCourse?.name}?
+              Tem certeza que deseja remover o curso {selectedCourse?.name}? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteCourse}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Category Confirmation Dialog */}
+      <AlertDialog open={isDeleteCategoryDialogOpen} onOpenChange={setIsDeleteCategoryDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover Categoria</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja remover esta categoria? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteCategory}
               className="bg-red-600 hover:bg-red-700"
             >
               Remover
@@ -604,7 +631,7 @@ const AdminCourses = () => {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => handleDeleteCategory(category.id)}
+                    onClick={() => openDeleteCategoryDialog(category.id)}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
                     Deletar

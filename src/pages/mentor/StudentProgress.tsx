@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { BookOpen, Search, Star, Target, Trophy } from "lucide-react"
-import { Progress } from "@/components/ui/progress"
 import { useState, useEffect } from "react"
 import { UserMentorAPI } from "@/api/mentor/controllers/UserMentorAPI"
 import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI"
@@ -9,18 +8,22 @@ import { MentorProgressStudent } from "@/api/dtos/mentorProgressDtos"
 import { ClassroomResponseDTO } from "@/api/dtos/classroomDtos"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
+import { StudentRankingResponseDTO } from "@/api/dtos/studentRankingDtos"
+import { RankingSection } from "@/components/progress/RankingSection"
 
 const StudentProgress = () => {
   const [search, setSearch] = useState("")
   const [students, setStudents] = useState<MentorProgressStudent[]>([])
   const [classrooms, setClassrooms] = useState<ClassroomResponseDTO[]>([])
   const [selectedClassroomId, setSelectedClassroomId] = useState<string | null>(null)
+  const [selectedRanking, setSelectedRanking] = useState<StudentRankingResponseDTO | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch all classrooms on mount
+  // Fetch all classrooms and rankings on mount
   useEffect(() => {
     const fetchClassrooms = async () => {
+      setLoading(true)
       try {
         const classroomResponse = await ClassroomMentorAPI.getAllClassrooms()
         const validClassrooms = classroomResponse.filter(
@@ -41,29 +44,39 @@ const StudentProgress = () => {
     fetchClassrooms()
   }, [])
 
-  // Fetch students for the selected classroom
+  // Fetch students and ranking for the selected classroom
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchData = async () => {
       if (!selectedClassroomId) return
       setLoading(true)
       try {
-        const response = await UserMentorAPI.getStudentsForClassroom(selectedClassroomId)
-        setStudents(response)
+        // Fetch students
+        const studentResponse = await UserMentorAPI.getStudentsForClassroom(selectedClassroomId)
+        setStudents(studentResponse)
+
+        // Fetch ranking
+        const rankingResponse = await UserMentorAPI.getStudentRankingsForAllClassrooms()
+        const selectedRankingData = rankingResponse.find(
+          (ranking) => ranking.classroomId === selectedClassroomId
+        )
+        setSelectedRanking(selectedRankingData || null)
       } catch (err) {
-        setError("Falha ao carregar alunos da turma selecionada")
+        setError("Falha ao carregar dados da turma selecionada")
         console.error(err)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchStudents()
+    fetchData()
   }, [selectedClassroomId])
 
   const filteredStudents = students.filter(student =>
     student.user.name.toLowerCase().includes(search.toLowerCase()) ||
     student.user.email.toLowerCase().includes(search.toLowerCase())
   )
+
+  const isUser = (userId: string) => false // No current user context for mentor view
 
   return (
     <div className="container py-8 space-y-8 animate-fadeIn">
@@ -116,51 +129,63 @@ const StudentProgress = () => {
         </div>
       </div>
 
-      {loading && <p>Carregando alunos...</p>}
+      {loading && <p>Carregando dados...</p>}
       {error && <p className="text-red-500">{error}</p>}
       {!loading && !error && students.length === 0 && <p>Nenhum aluno encontrado para a turma selecionada</p>}
       {!loading && !error && students.length > 0 && (
-        <div className="grid gap-6 md:grid-cols-2">
-          {filteredStudents.map(student => (
-            <Card key={student.user.id} className="hover:shadow-lg transition-all">
-              <CardHeader>
-                <CardTitle className="flex justify-between items-center">
-                  <span>{student.user.name}</span>
-                  <div className="flex items-center gap-2">
-                    <Trophy className="w-4 h-4 text-yellow-500" />
-                    <span className="text-primary">{student.user.xp} XP</span>
-                  </div>
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">{student.user.email}</p>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-primary/5 rounded-lg">
-                    <Star className="w-4 h-4 mx-auto mb-2 text-primary" />
-                    <p className="text-sm font-medium">Nível</p>
-                    <p className="text-2xl font-bold text-primary">{student.user.level}</p>
-                  </div>
-                  <div className="text-center p-4 bg-primary/5 rounded-lg">
-                    <BookOpen className="w-4 h-4 mx-auto mb-2 text-primary" />
-                    <p className="text-sm font-medium">Cursos Iniciados</p>
-                    <p className="text-2xl font-bold text-primary">{student.initiatedCourses}</p>
-                  </div>
-                  <div className="text-center p-4 bg-primary/5 rounded-lg">
-                    <Target className="w-4 h-4 mx-auto mb-2 text-primary" />
-                    <p className="text-sm font-medium">Sequência</p>
-                    <p className="text-2xl font-bold text-primary">{student.sequence}d</p>
-                  </div>
+        <div className="grid gap-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            {filteredStudents.map(student => (
+              <Card key={student.user.id} className="hover:shadow-lg transition-all flex">
+                <div className="flex-shrink-0 p-4">
+                  <img
+                    src={student.user.avatar || "/placeholder.svg"}
+                    alt={student.user.name}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
                 </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
+                <div className="flex-1">
+                  <CardHeader>
+                    <CardTitle className="flex justify-between items-center">
+                      <span>{student.user.name}</span>
+                      <div className="flex items-center gap-2">
+                        <Trophy className="w-4 h-4 text-yellow-500" />
+                        <span className="text-primary">{student.user.xp} XP</span>
+                      </div>
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">{student.user.email}</p>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-primary/5 rounded-lg">
+                        <Star className="w-4 h-4 mx-auto mb-2 text-primary" />
+                        <p className="text-sm font-medium">Nível</p>
+                        <p className="text-2xl font-bold text-primary">{student.user.level}</p>
+                      </div>
+                      <div className="text-center p-4 bg-primary/5 rounded-lg">
+                        <BookOpen className="w-4 h-4 mx-auto mb-2 text-primary" />
+                        <p className="text-sm font-medium">Cursos Iniciados</p>
+                        <p className="text-2xl font-bold text-primary">{student.initiatedCourses}</p>
+                      </div>
+                      <div className="text-center p-4 bg-primary/5 rounded-lg">
+                        <Target className="w-4 h-4 mx-auto mb-2 text-primary" />
+                        <p className="text-sm font-medium">Sequência</p>
+                        <p className="text-2xl font-bold text-primary">{student.sequence}d</p>
+                      </div>
                     </div>
-                  </div>
+                  </CardContent>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </Card>
+            ))}
+          </div>
+          {selectedRanking && (
+            <RankingSection
+              ranking={selectedRanking.ranking}
+              isUser={isUser}
+              title={`Ranking - ${selectedRanking.classroomName || 'Turma ' + selectedRanking.classroomId}`}
+              description={`Classificação dos alunos por XP`}
+            />
+          )}
         </div>
       )}
     </div>

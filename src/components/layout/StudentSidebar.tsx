@@ -30,7 +30,7 @@ import {
     { title: "Desafios", icon: Users, url: "/dashboard/desafios" },
     { title: "Mentoria", icon: UserCog, url: "/dashboard/mentoria" },
     { title: "Mensagens", icon: MessageSquare, url: "/dashboard/mensagens" },
-    //{ title: "Aula ao Vivo", icon: Calendar, url: "/dashboard/aula-ao-vivo" },
+    { title: "Aula ao Vivo", icon: Calendar, url: "/dashboard/aula-ao-vivo" },
     { title: "Redações", icon: PenSquare, url: "/dashboard/redacoes" },
     { title: "Simulados", icon: FileText, url: "/dashboard/simulados" },
     { title: "Configurações", icon: Settings, url: "/dashboard/configuracoes" },

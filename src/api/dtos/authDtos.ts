@@ -11,6 +11,7 @@ export interface RegisterRequest {
   studyReminder?: boolean;
   role: string;
   classId?: string;
+  expertise? : string;
 }
   
   export interface AuthenticationRequest {

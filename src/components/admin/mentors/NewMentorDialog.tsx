@@ -34,6 +34,7 @@ const NewMentorDialog = ({ open, onOpenChange, onSubmit }: NewMentorDialogProps)
       weeklyReport: formData.get('weeklyReport') === 'on',
       studyReminder: formData.get('studyReminder') === 'on',
       role: UserRole.MENTOR,
+      expertise: formData.get('specialty') as string || undefined,
       classId: undefined, // Optional field, not included in form for now
     }
     onSubmit(mentorData)

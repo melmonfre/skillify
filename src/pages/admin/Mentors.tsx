@@ -1,4 +1,3 @@
-// AdminMentors.tsx
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -6,23 +5,24 @@ import { Search, UserPlus } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import MentorCard from "@/components/admin/mentors/MentorCard"
 import NewMentorDialog from "@/components/admin/mentors/NewMentorDialog"
+import EditMentorDialog from "@/components/admin/mentors/EditMentorDialog"
 import MessageDialog from "@/components/admin/mentors/MessageDialog"
 import ProfileDialog from "@/components/admin/mentors/ProfileDialog"
-import { UserResponseDTO } from "@/api/dtos/userDtos"
+import { UserResponseDTO, UserUpdateRequest } from "@/api/dtos/userDtos"
 import { UserAdminAPI } from "@/api/admin/controllers/UserAdminAPI"
 import { RegisterRequest } from "@/api/dtos/authDtos"
 
 // Assuming there's an auth context or similar to get the current admin's ID
-// For this example, we'll hardcode it, but you should replace this with actual auth logic
 const currentAdminId = localStorage.getItem("userId")
 
 const AdminMentors = () => {
   const { toast } = useToast()
   const [isNewMentorOpen, setIsNewMentorOpen] = useState(false)
+  const [isEditMentorOpen, setIsEditMentorOpen] = useState(false)
   const [isMessageOpen, setIsMessageOpen] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [selectedMentorId, setSelectedMentorId] = useState<string | null>(null) // For profile and message
-  const [selectedMentorName, setSelectedMentorName] = useState<string | null>(null) // For message display
+  const [selectedMentor, setSelectedMentor] = useState<UserResponseDTO | null>(null)
+  const [selectedMentorName, setSelectedMentorName] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [mentors, setMentors] = useState<UserResponseDTO[]>([])
 
@@ -60,15 +60,40 @@ const AdminMentors = () => {
     }
   }
 
+  const handleEditMentor = async (mentorData: UserUpdateRequest) => {
+    if (!selectedMentor) return
+    try {
+      const updatedMentor = await UserAdminAPI.updateUser(selectedMentor.id, mentorData)
+      setMentors(prev => prev.map(mentor => mentor.id === updatedMentor.id ? updatedMentor : mentor))
+      setIsEditMentorOpen(false)
+      setSelectedMentor(null)
+      toast({
+        title: "Mentor atualizado",
+        description: "Os dados do mentor foram atualizados com sucesso.",
+      })
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar mentor",
+        description: "Não foi possível atualizar os dados do mentor.",
+        variant: "destructive"
+      })
+    }
+  }
+
   const openMessageDialog = (mentorId: string, mentorName: string) => {
-    setSelectedMentorId(mentorId)
+    setSelectedMentor(mentors.find(mentor => mentor.id === mentorId) || null)
     setSelectedMentorName(mentorName)
     setIsMessageOpen(true)
   }
 
   const openProfileDialog = (mentorId: string) => {
-    setSelectedMentorId(mentorId)
+    setSelectedMentor(mentors.find(mentor => mentor.id === mentorId) || null)
     setIsProfileOpen(true)
+  }
+
+  const openEditDialog = (mentorId: string) => {
+    setSelectedMentor(mentors.find(mentor => mentor.id === mentorId) || null)
+    setIsEditMentorOpen(true)
   }
 
   const filteredMentors = mentors.filter(mentor => 
@@ -115,15 +140,10 @@ const AdminMentors = () => {
           <MentorCard
             key={mentor.id}
             name={mentor.name}
-            specialty={mentor.biography || 'Especialidade não informada'}
-            stats={{
-              students: 32, // Hardcoded for now
-              rating: 4.8,
-              courses: 4,
-              responses: 156
-            }}
-            onMessage={() => openMessageDialog(mentor.id, mentor.name)}
+            specialty={mentor.expertise || 'Especialidade não informada'}
+            biography={mentor.biography || "Biografia não informada"}
             onViewProfile={() => openProfileDialog(mentor.id)}
+            onEdit={() => openEditDialog(mentor.id)}
           />
         ))}
       </div>
@@ -134,10 +154,17 @@ const AdminMentors = () => {
         onSubmit={handleNewMentor}
       />
 
+      <EditMentorDialog
+        open={isEditMentorOpen}
+        onOpenChange={setIsEditMentorOpen}
+        onSubmit={handleEditMentor}
+        mentor={selectedMentor}
+      />
+
       <MessageDialog
         open={isMessageOpen}
         onOpenChange={setIsMessageOpen}
-        mentorId={selectedMentorId}
+        mentorId={selectedMentor?.id || null}
         mentorName={selectedMentorName}
         senderId={currentAdminId}
       />
@@ -145,10 +172,9 @@ const AdminMentors = () => {
       <ProfileDialog
         open={isProfileOpen}
         onOpenChange={setIsProfileOpen}
-        mentorId={selectedMentorId}
+        mentorId={selectedMentor?.id || null}
       />
     </div>
   )
 }
-
 export default AdminMentors
