@@ -169,72 +169,32 @@ const AdminStudents = () => {
         {filteredStudents.map((student) => (
           <Card key={student.id} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card to-primary/5">
             <CardHeader className="pb-2">
-              <div className="flex justify-between items-start mb-4">
-                <Badge variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20">
-                  {student.role === UserRole.ESTUDANTE ? "Estudante" : student.role}
-                </Badge>
-                <div className="flex items-center gap-2">
-                  <Medal className="w-4 h-4 text-yellow-500" />
-                  <span className="text-sm font-medium">Nível 3</span>
+              <div className="flex items-start gap-4">
+                <img 
+                  src={student.avatar} 
+                  alt={""} 
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-4">
+                    <Badge variant="outline" className="bg-primary/10 text-primary hover:bg-primary/20">
+                      {student.role === UserRole.ESTUDANTE ? "Estudante" : student.role}
+                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Medal className="w-4 h-4 text-yellow-500" />
+                      <span className="text-sm font-medium">Nível {student.level}</span>
+                    </div>
+                  </div>
+                  <CardTitle className="text-xl">{student.name}</CardTitle>
+                  <div className="flex items-center gap-2 mt-1">
+                    <p className="text-sm text-muted-foreground">{student.email}</p>
+                  </div>
                 </div>
-              </div>
-              <CardTitle className="text-xl">{student.name}</CardTitle>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-sm text-muted-foreground">{student.email}</p>
-              </div>
-              <div className="flex items-center gap-2 mt-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Último acesso: há 2 dias</p>
               </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <BookOpen className="w-4 h-4" />
-                      <span className="text-sm">Cursos</span>
-                    </div>
-                    <p className="text-2xl font-semibold">3</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <GraduationCap className="w-4 h-4" />
-                      <span className="text-sm">Concluídos</span>
-                    </div>
-                    <p className="text-2xl font-semibold">1</p>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Star className="w-4 h-4" />
-                      <span className="text-sm">Média</span>
-                    </div>
-                    <p className="text-2xl font-semibold">8.5</p>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-muted-foreground">
-                    <span className="text-sm">Progresso Total</span>
-                    <span className="text-sm font-medium">65%</span>
-                  </div>
-                  <div className="h-2 bg-primary/10 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all duration-300"
-                      style={{ width: "65%" }}
-                    />
-                  </div>
-                </div>
-
                 <div className="flex items-center gap-3 pt-4">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 border-primary/20 hover:bg-primary/5 hover:border-primary/30 transition-all duration-300 py-6"
-                    onClick={() => openEditDialog(student)}
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar
-                  </Button>
                   <Button 
                     variant="destructive" 
                     className="flex-1 py-6 hover:bg-red-700 transition-all duration-300"

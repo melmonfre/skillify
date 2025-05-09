@@ -191,7 +191,7 @@ const AdminClasses = () => {
             key={classItem.id}
             name={classItem.name}
             mentor={classItem.mentor.name}
-            students={classItem.students.size}
+            students={classItem.students.length}
             onGenerateLink={() => generateLink(classItem.id)}
             onEdit={() => {
               setSelectedClassId(classItem.id)

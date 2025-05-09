@@ -44,6 +44,8 @@ const AdminPlans = () => {
   const [searchQuery, setSearchQuery] = useState("")
   const [loading, setLoading] = useState(false)
 
+  return(<div>Em breve</div>)
+
   // Fetch all plans on component mount
   useEffect(() => {
     fetchPlans()
@@ -427,3 +429,4 @@ Exemplo:
 }
 
 export default AdminPlans
+

@@ -11,7 +11,7 @@ export interface ClassroomCreateDTO {
 export interface ClassroomResponseDTO {
   id: string; // Assuming BaseResponseDTO provides this
   name: string;
-  students: Set<UserResponseDTO>;
+  students: UserResponseDTO[];
   mentor: UserResponseDTO;
   courses: ClassroomCourseReturnDTO[];
 }
