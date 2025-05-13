@@ -12,6 +12,8 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI"
 import { ClassroomAccessTokenMentorAPI } from "@/api/mentor/controllers/ClassroomAccessTokenMentorAPI"
 import { ClassroomResponseDTO } from "@/api/dtos/classroomDtos"
@@ -20,11 +22,14 @@ import { ClassroomAccessTokenResponseDTO } from "@/api/dtos/classroomAccessToken
 const MentorTurmas = () => {
   const { toast } = useToast()
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false)
+  const [isStudentsDialogOpen, setIsStudentsDialogOpen] = useState(false)
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null)
   const [registrationLink, setRegistrationLink] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
+  const [studentSearchQuery, setStudentSearchQuery] = useState("")
   const [classrooms, setClassrooms] = useState<ClassroomResponseDTO[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([])
 
   useEffect(() => {
     const fetchClassrooms = async () => {
@@ -73,6 +78,45 @@ const MentorTurmas = () => {
         description: "O link de cadastro foi copiado para sua área de transferência.",
       })
       setIsLinkDialogOpen(false)
+    }
+  }
+
+  const openStudentsDialog = (classroomId: string) => {
+    const classroom = classrooms.find(c => c.id === classroomId)
+    if (classroom) {
+      setSelectedClassId(classroomId)
+      setSelectedStudents(classroom.students.map(student => student.id))
+      setStudentSearchQuery("")
+      setIsStudentsDialogOpen(true)
+    }
+  }
+
+  const handleStudentToggle = (studentId: string) => {
+    setSelectedStudents(prev =>
+      prev.includes(studentId)
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    )
+  }
+
+  const handleSaveStudents = async () => {
+    if (!selectedClassId) return
+    try {
+      const updatedClassroom = await ClassroomMentorAPI.updateClassroomStudents(selectedClassId, selectedStudents)
+      setClassrooms(prev =>
+        prev.map(c => c.id === selectedClassId ? updatedClassroom : c)
+      )
+      toast({
+        title: "Sucesso",
+        description: "Lista de alunos atualizada com sucesso.",
+      })
+      setIsStudentsDialogOpen(false)
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar a lista de alunos.",
+        variant: "destructive",
+      })
     }
   }
 
@@ -130,15 +174,11 @@ const MentorTurmas = () => {
                 <div className="flex items-center gap-1">
                   <Users className="w-4 h-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
-                    {classroom.students.size} alunos
+                    {classroom.students.length} alunos
                   </span>
                 </div>
               </div>
               <CardTitle className="text-xl mb-4">{classroom.name}</CardTitle>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="w-4 h-4" />
-                <span>Início: 15/03/2024</span>
-              </div>
               <div className="space-y-2 mt-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <GraduationCap className="w-4 h-4" />
@@ -164,13 +204,22 @@ const MentorTurmas = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <Button
-                onClick={() => generateLink(classroom.id)}
-                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <LinkIcon className="w-4 h-4 mr-2" />
-                Gerar Link de Cadastro
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => generateLink(classroom.id)}
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                >
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                  Gerar Link de Cadastro
+                </Button>
+                <Button
+                  onClick={() => openStudentsDialog(classroom.id)}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Editar Alunos
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -194,6 +243,54 @@ const MentorTurmas = () => {
             >
               <LinkIcon className="w-4 h-4 mr-2" />
               Copiar Link
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isStudentsDialogOpen} onOpenChange={setIsStudentsDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Editar Alunos</DialogTitle>
+            <DialogDescription>
+              Selecione os alunos que devem fazer parte desta turma.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+              <Input 
+                placeholder="Buscar alunos..." 
+                className="pl-10 py-6 text-lg"
+                value={studentSearchQuery}
+                onChange={(e) => setStudentSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="max-h-[300px] overflow-y-auto space-y-2">
+              {selectedClassId && classrooms
+                .find(c => c.id === selectedClassId)
+                ?.students
+                .filter(student => 
+                  student.name.toLowerCase().includes(studentSearchQuery.toLowerCase())
+                )
+                .map(student => (
+                  <div key={student.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={student.id}
+                      checked={selectedStudents.includes(student.id)}
+                      onCheckedChange={() => handleStudentToggle(student.id)}
+                    />
+                    <Label htmlFor={student.id} className="text-sm">
+                      {student.name} ({student.email})
+                    </Label>
+                  </div>
+                ))}
+            </div>
+            <Button 
+              onClick={handleSaveStudents}
+              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+            >
+              Salvar Alterações
             </Button>
           </div>
         </DialogContent>

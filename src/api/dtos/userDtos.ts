@@ -35,3 +35,16 @@ export enum UserRole {
     studyReminder: boolean;
     role: string;
   }
+
+  export interface RegisterRequest {
+    name: string;
+    email: string;
+    password?: string; // Optional, as profile updates may not include password
+    tel: string;
+    biography: string;
+    emailNotifications: boolean;
+    pushNotifications: boolean;
+    weeklyReport: boolean;
+    studyReminder: boolean;
+    role: string;
+  }

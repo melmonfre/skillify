@@ -5,6 +5,8 @@ import { XPChart } from "@/components/progress/XPChart"
 import { Users, BookOpen, FileText, Target, Trophy } from "lucide-react"
 
 const MentorDashboard = () => {
+
+  return <div>Em breve</div>
   const stats = [
     {
       title: "Total de Alunos",

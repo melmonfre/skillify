@@ -82,6 +82,23 @@ export class ClassroomMentorAPI {
       throw error;
     }
   }
+
+   /**
+   * Updates the students of an existing classroom for the authenticated mentor (mentor only)
+   * @param id Classroom ID
+   * @param userIds Array of user IDs to set as students
+   * @returns Promise containing updated classroom DTO
+   */
+  static async updateClassroomStudents(id: string, userIds: string[]): Promise<ClassroomResponseDTO> {
+    try {
+      const response = await api.put<ClassroomResponseDTO>(`/api/mentor/classrooms/${id}/students`, userIds);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating classroom students:', error);
+      throw error;
+    }
+  }
+
 }
 
 // Usage example:

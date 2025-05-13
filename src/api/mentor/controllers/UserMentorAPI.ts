@@ -1,8 +1,20 @@
-// src/api/mentor/controllers/UserMentorAPI.ts
 import { MentorProgressStudent } from '@/api/dtos/mentorProgressDtos';
-import api from '../../api';
-import { UserResponseDTO } from '../../dtos/userDtos';
+import { UserResponseDTO } from '@/api/dtos/userDtos';
 import { StudentRankingResponseDTO } from '@/api/dtos/studentRankingDtos';
+import api from '../../api';
+
+interface RegisterRequest {
+  name: string;
+  email: string;
+  password?: string; // Optional, as profile updates may not include password
+  tel: string;
+  biography: string;
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  weeklyReport: boolean;
+  studyReminder: boolean;
+  role: string;
+}
 
 export class UserMentorAPI {
   static async getAllStudents(): Promise<UserResponseDTO[]> {
@@ -33,6 +45,35 @@ export class UserMentorAPI {
       return response.data;
     } catch (error) {
       console.error('Error fetching rankings for all classrooms:', error);
+      throw error;
+    }
+  }
+
+  static async updateStudentProfile(studentId: string, request: RegisterRequest): Promise<UserResponseDTO> {
+    try {
+      const response = await api.put<UserResponseDTO>(`/api/mentor/users/${studentId}`, request);
+      return response.data;
+    } catch (error) {
+      console.error(`Error updating student profile for student ${studentId}:`, error);
+      throw error;
+    }
+  }
+
+  static async deleteStudent(studentId: string): Promise<void> {
+    try {
+      await api.delete(`/api/mentor/users/${studentId}`);
+    } catch (error) {
+      console.error(`Error deleting student ${studentId}:`, error);
+      throw error;
+    }
+  }
+
+   static async createStudent(request: RegisterRequest): Promise<UserResponseDTO> {
+    try {
+      const response = await api.post<UserResponseDTO>('/api/mentor/users', request);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating student:', error);
       throw error;
     }
   }

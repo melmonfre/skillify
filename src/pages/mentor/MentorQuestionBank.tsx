@@ -1,16 +1,17 @@
-// src/pages/mentor/MentorQuestionBank.tsx
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Search, ChevronDown, ChevronUp, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { QuestionMentorAPI } from '@/api/mentor/controllers/QuestionMentorAPI';
 import { OptionMentorAPI } from '@/api/mentor/controllers/OptionMentorAPI';
 import { QuestionResponseDTO, QuestionContentType, QuestionContentCreateDTO } from '@/api/dtos/questionDtos';
+import { OptionCreateDTO } from '@/api/dtos/optionDtos'; // Ensure OptionCreateDTO is imported
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DeleteQuestionDialog } from '@/components/mentor/question/DeleteQuestionDialog';
 import { CreateQuestionDialog } from '@/components/mentor/question/CreateQuestionDialog';
+import { EditQuestionDialog } from '@/components/mentor/question/EditQuestionDialog';
 
 export default function MentorQuestionBank() {
   const { toast } = useToast();
@@ -21,6 +22,8 @@ export default function MentorQuestionBank() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [questionToDelete, setQuestionToDelete] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [questionToEdit, setQuestionToEdit] = useState<QuestionResponseDTO | null>(null);
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(new Set());
 
   const mentorId = localStorage.getItem('userId') || '';
@@ -97,14 +100,12 @@ export default function MentorQuestionBank() {
     contentItems: { type: QuestionContentType; value: string }[]
   ) => {
     try {
-      // Create the question first
       const createdQuestion = await QuestionMentorAPI.createQuestion({
         title: question.title,
         mentorId,
-        courseId: question.courseId // Include courseId if provided
+        courseId: question.courseId
       });
   
-      // Create options
       const optionPromises = question.options
         .filter(option => option.title.trim())
         .map(option => 
@@ -116,7 +117,6 @@ export default function MentorQuestionBank() {
         );
       await Promise.all(optionPromises);
   
-      // Create content items (only if there are valid content items)
       const validContentItems = contentItems
         .filter(item => item.type && item.value.trim())
         .map((item, index) => ({
@@ -133,7 +133,6 @@ export default function MentorQuestionBank() {
         );
       }
   
-      // Refresh questions list
       const updatedQuestions = await QuestionMentorAPI.getAllQuestions();
       setMentorQuestions(updatedQuestions);
   
@@ -143,7 +142,7 @@ export default function MentorQuestionBank() {
         variant: 'default',
       });
   
-      return true; // Return success status
+      return true;
     } catch (error) {
       console.error('Error creating question:', error);
       toast({
@@ -151,9 +150,102 @@ export default function MentorQuestionBank() {
         description: error.response?.data?.message || 'Falha ao criar a questão',
         variant: 'destructive',
       });
-      return false; // Return failure status
+      return false;
     }
   };
+
+  const handleEditQuestion = async (
+    question: { 
+      title: string; 
+      options: { id?: string; title: string; correct: boolean }[]; 
+      courseId?: string 
+    }, 
+    contentItems: { id: string; type: QuestionContentType; value: string }[]
+  ) => {
+    if (!questionToEdit) return false;
+
+    try {
+      // Update the question
+      await QuestionMentorAPI.updateQuestion(questionToEdit.id, {
+        title: question.title,
+        mentorId,
+        courseId: question.courseId,
+      });
+
+      // Handle options: update existing, create new, delete removed
+      const existingOptionIds = questionToEdit.options.map(opt => opt.id);
+      const submittedOptionIds = question.options.filter(opt => opt.id).map(opt => opt.id);
+      
+      // Delete options that were removed
+      const optionsToDelete = existingOptionIds.filter(id => !submittedOptionIds.includes(id));
+      await Promise.all(
+        optionsToDelete.map(optionId =>
+          OptionMentorAPI.deleteOption(optionId) // Use OptionMentorAPI.deleteOption
+        )
+      );
+
+      // Update or create options
+      const optionPromises = question.options
+        .filter(option => option.title.trim())
+        .map(option => {
+          if (option.id) {
+            // Update existing option using OptionMentorAPI.updateOption
+            return OptionMentorAPI.updateOption(option.id, {
+              questionId: questionToEdit.id,
+              title: option.title,
+              correct: option.correct,
+            });
+          } else {
+            // Create new option
+            return OptionMentorAPI.createOption({
+              questionId: questionToEdit.id,
+              title: option.title,
+              correct: option.correct,
+            });
+          }
+        });
+      await Promise.all(optionPromises);
+
+      // Update content items
+      const validContentItems = contentItems
+        .filter(item => item.type && item.value.trim())
+        .map((item, index) => ({
+          id: item.id,
+          questionId: questionToEdit.id,
+          position: index,
+          type: item.type,
+          value: item.value
+        }));
+      
+      if (validContentItems.length > 0) {
+        await QuestionMentorAPI.updateQuestionContent(
+          questionToEdit.id,
+          validContentItems
+        );
+      }
+
+      // Refresh questions list
+      const updatedQuestions = await QuestionMentorAPI.getAllQuestions();
+      setMentorQuestions(updatedQuestions);
+
+      toast({
+        title: 'Sucesso',
+        description: 'Questão atualizada com sucesso',
+        variant: 'default',
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating question:', error);
+      toast({
+        title: 'Erro',
+        description: error.response?.data?.message || 'Falha ao atualizar a questão',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   const renderQuestionList = (questions: QuestionResponseDTO[], editable: boolean) => (
     isLoading ? (
       <div className="flex justify-center items-center h-64">
@@ -192,17 +284,30 @@ export default function MentorQuestionBank() {
                 </button>
               </div>
               {editable && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-red-400 hover:text-red-300"
-                  onClick={() => {
-                    setQuestionToDelete(question.id);
-                    setIsDeleteDialogOpen(true);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-blue-400 hover:text-blue-300"
+                    onClick={() => {
+                      setQuestionToEdit(question);
+                      setIsEditDialogOpen(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-400 hover:text-red-300"
+                    onClick={() => {
+                      setQuestionToDelete(question.id);
+                      setIsDeleteDialogOpen(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
             </div>
 
@@ -235,7 +340,7 @@ export default function MentorQuestionBank() {
                   {question.options.map((option) => (
                     <div
                       key={option.id}
-                      className={`p-3 rounded-md ${option.correct ? 'bg-green-900/30 border border-green-800' : 'bg-white/5'}`}
+                      className={`p-3 rounded,as-- rounded-md ${option.correct ? 'bg-green-900/30 border border-green-800' : 'bg-white/5'}`}
                     >
                       <div className="flex items-center justify-between">
                         <span className={option.correct ? 'text-green-400' : 'text-white'}>
@@ -309,6 +414,13 @@ export default function MentorQuestionBank() {
         isOpen={isCreateDialogOpen}
         onOpenChange={setIsCreateDialogOpen}
         onSubmit={handleCreateQuestion}
+      />
+
+      <EditQuestionDialog
+        isOpen={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        question={questionToEdit}
+        onSubmit={handleEditQuestion}
       />
     </div>
   );
