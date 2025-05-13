@@ -77,4 +77,13 @@ export class UserMentorAPI {
       throw error;
     }
   }
+
+    static async updateStudentClassrooms(studentId: string, classroomIds: string[]): Promise<void> {
+    try {
+      await api.put(`/api/mentor/users/${studentId}/classrooms`, classroomIds);
+    } catch (error) {
+      console.error(`Error updating classrooms for student ${studentId}:`, error);
+      throw error;
+    }
+  }
 }

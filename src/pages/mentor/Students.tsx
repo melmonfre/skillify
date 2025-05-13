@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, Mail, MessageSquare, Send, Edit, Trash } from "lucide-react"
+import { Search, Mail, MessageSquare, Send, Edit, Trash, Book } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -39,6 +39,9 @@ const MentorStudents = () => {
   const [editStudentId, setEditStudentId] = useState<string | null>(null)
   const [createStudentOpen, setCreateStudentOpen] = useState(false)
   const [deleteStudentId, setDeleteStudentId] = useState<string | null>(null)
+  const [editClassroomsStudentId, setEditClassroomsStudentId] = useState<string | null>(null)
+  const [classroomSearchTerm, setClassroomSearchTerm] = useState("")
+  const [selectedClassroomIds, setSelectedClassroomIds] = useState<string[]>([])
   const [editForm, setEditForm] = useState<RegisterRequest>({
     name: "",
     email: "",
@@ -48,7 +51,7 @@ const MentorStudents = () => {
     pushNotifications: false,
     weeklyReport: false,
     studyReminder: false,
-    role: "STUDENT",
+    role: "ESTUDANTE",
     password: ""
   })
   const [createForm, setCreateForm] = useState<RegisterRequest>({
@@ -60,7 +63,7 @@ const MentorStudents = () => {
     pushNotifications: false,
     weeklyReport: false,
     studyReminder: false,
-    role: "STUDENT",
+    role: "ESTUDANTE",
     password: ""
   })
 
@@ -136,12 +139,35 @@ const MentorStudents = () => {
           pushNotifications: student.pushNotifications || false,
           weeklyReport: student.weeklyReport || false,
           studyReminder: student.studyReminder || false,
-          role: "STUDENT",
+          role: "ESTUDANTE",
           password: ""
         })
       }
     }
   }, [editStudentId, students])
+
+  // Populate selected classrooms when edit classrooms dialog opens
+  useEffect(() => {
+    if (editClassroomsStudentId) {
+      const fetchStudentClassrooms = async () => {
+        try {
+          // Fetch all classrooms to check which ones the student belongs to
+          const allClassrooms = await ClassroomMentorAPI.getAllClassrooms()
+          const studentClassrooms = allClassrooms.filter(classroom =>
+            classroom.students.some(student => student.id === editClassroomsStudentId)
+          )
+          setSelectedClassroomIds(studentClassrooms.map(classroom => classroom.id))
+        } catch (error) {
+          toast({
+            title: "Erro",
+            description: "Falha ao carregar turmas do aluno",
+            variant: "destructive"
+          })
+        }
+      }
+      fetchStudentClassrooms()
+    }
+  }, [editClassroomsStudentId, toast])
 
   const fetchMessages = async (studentId: string) => {
     try {
@@ -208,7 +234,7 @@ const MentorStudents = () => {
         pushNotifications: false,
         weeklyReport: false,
         studyReminder: false,
-        role: "STUDENT",
+        role: "ESTUDANTE",
         password: ""
       })
       toast({
@@ -264,6 +290,32 @@ const MentorStudents = () => {
     }
   }
 
+  const handleUpdateStudentClassrooms = async () => {
+    if (!editClassroomsStudentId) return
+
+    try {
+      await UserMentorAPI.updateStudentClassrooms(editClassroomsStudentId, selectedClassroomIds)
+      setEditClassroomsStudentId(null)
+      setClassroomSearchTerm("")
+      setSelectedClassroomIds([])
+      toast({
+        title: "Sucesso",
+        description: "Turmas do aluno atualizadas",
+      })
+      // Refresh students for the selected classroom
+      if (selectedClassroomId) {
+        const studentData = await UserMentorAPI.getStudentsForClassroom(selectedClassroomId)
+        setStudents(studentData.map((student) => student.user))
+      }
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Falha ao atualizar turmas do aluno",
+        variant: "destructive"
+      })
+    }
+  }
+
   const handleViewProgress = (studentName: string) => {
     navigate("/mentor/progresso")
     toast({
@@ -284,6 +336,10 @@ const MentorStudents = () => {
   const filteredStudents = students.filter(student =>
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     student.email.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const filteredClassrooms = classrooms.filter(classroom =>
+    classroom.name.toLowerCase().includes(classroomSearchTerm.toLowerCase())
   )
 
   const StudentCard = ({ student }: { student: UserResponseDTO }) => (
@@ -316,7 +372,7 @@ const MentorStudents = () => {
             </p>
           </div>
         </div>
-        <div className="absolute bottom-3 left-4 right-4 grid grid-cols-3 gap-2">
+        <div className="absolute bottom-3 left-4 right-4 grid grid-cols-4 gap-2">
           <Button 
             variant="outline" 
             onClick={() => setSelectedStudentChat(student.id)}
@@ -332,6 +388,14 @@ const MentorStudents = () => {
           >
             <Edit className="w-3 h-3 mr-1" />
             Editar
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => setEditClassroomsStudentId(student.id)}
+            className="hover:bg-primary/5 h-7 text-xs px-5"
+          >
+            <Book className="w-3 h-3 mr-1" />
+            Turmas
           </Button>
           <Button 
             variant="outline" 
@@ -431,7 +495,7 @@ const MentorStudents = () => {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {chatLoading ? (
-              <div className="text-centerynomial">Carregando mensagens...</div>
+              <div className="text-center">Carregando mensagens...</div>
             ) : messages.length === 0 ? (
               <div className="text-center text-muted-foreground">
                 Nenhuma mensagem ainda
@@ -663,6 +727,62 @@ const MentorStudents = () => {
               Cancelar
             </Button>
             <Button onClick={handleUpdateStudent}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Classrooms Dialog */}
+      <Dialog open={!!editClassroomsStudentId} onOpenChange={() => {
+        setEditClassroomsStudentId(null)
+        setClassroomSearchTerm("")
+        setSelectedClassroomIds([])
+      }}>
+        <DialogContent className="sm:max-w-[500px] max-h-[600px] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>
+              Editar Turmas de {students.find(s => s.id === editClassroomsStudentId)?.name || ""}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Pesquise turmas pelo nome" 
+              className="pl-10"
+              value={classroomSearchTerm}
+              onChange={(e) => setClassroomSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {filteredClassrooms.length === 0 ? (
+              <div className="text-center text-muted-foreground">
+                Nenhuma turma encontrada
+              </div>
+            ) : (
+              filteredClassrooms.map(classroom => (
+                <div key={classroom.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`classroom-${classroom.id}`}
+                    checked={selectedClassroomIds.includes(classroom.id)}
+                    onCheckedChange={(checked) => {
+                      setSelectedClassroomIds(prev =>
+                        checked
+                          ? [...prev, classroom.id]
+                          : prev.filter(id => id !== classroom.id)
+                      )
+                    }}
+                  />
+                  <Label htmlFor={`classroom-${classroom.id}`}>
+                    {classroom.name || `Turma ${classroom.id}`}
+                  </Label>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditClassroomsStudentId(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateStudentClassrooms}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

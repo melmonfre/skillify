@@ -28,7 +28,6 @@ const levelLabels = {
   advanced: "Avançado",
 };
 
-const categories = ["Todos", "Frontend", "Backend", "Programação", "DevOps", "Mobile"];
 const levels = ["Todos", "beginner", "intermediate", "advanced"];
 
 const Courses = () => {
@@ -36,6 +35,7 @@ const Courses = () => {
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [selectedLevel, setSelectedLevel] = useState("Todos");
   const [allCourses, setAllCourses] = useState<CourseResponseDTO[]>([]);
+  const [categories, setCategories] = useState<string[]>(["Todos"]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -45,6 +45,16 @@ const Courses = () => {
         setLoading(true);
         const courses = await CourseStudentAPI.getAllCourses();
         setAllCourses(courses);
+
+        // Extract unique category names from courses
+        const uniqueCategories = Array.from(
+          new Set(
+            courses.flatMap((course) =>
+              course.categories.map((cat) => cat.categoryName)
+            )
+          )
+        );
+        setCategories(["Todos", ...uniqueCategories]);
       } catch (error) {
         toast({
           title: "Erro ao carregar cursos",
@@ -65,8 +75,8 @@ const Courses = () => {
       .includes(searchQuery.toLowerCase());
     const matchesCategory =
       selectedCategory === "Todos" ||
-      Array.from(course.categories).some(cat => cat.categoryName === selectedCategory);
-    const matchesLevel = 
+      course.categories.some((cat) => cat.categoryName === selectedCategory);
+    const matchesLevel =
       selectedLevel === "Todos" || course.level === selectedLevel;
     return matchesSearch && matchesCategory && matchesLevel;
   });
@@ -83,8 +93,8 @@ const Courses = () => {
     <div className="container py-8 space-y-8 animate-fadeIn">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-bold">Cursos Disponíveis</h1>
-        <div className="flex flex-col gap-4 md:flex-row md:items-center">
-          <div className="relative">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-2">
+          <div className="relative w-full md:w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar cursos..."
