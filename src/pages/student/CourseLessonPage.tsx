@@ -16,11 +16,13 @@ export default function CourseLessonPage() {
   const [lessons, setLessons] = useState<CourseLessonResponseDTO[]>([]);
   const [selectedLesson, setSelectedLesson] = useState<CourseLessonResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
+  const [watchEvents, setWatchEvents] = useState<Record<string, boolean>>({});
   const { toast } = useToast();
+  const studentId = localStorage.getItem("userId");
 
   useEffect(() => {
-    async function fetchLessons() {
-      console.log("Starting fetchLessons with courseId:", courseId, "and lessonId:", lessonId);
+    async function fetchData() {
+      console.log("Starting fetchData with courseId:", courseId, "and lessonId:", lessonId);
       try {
         setLoading(true);
         if (!courseId) {
@@ -49,6 +51,18 @@ export default function CourseLessonPage() {
 
         setLessons(sortedLessons);
 
+        // Fetch all watch events for the student
+        const allWatchEvents = await CourseLessonContentWatchEventStudentAPI.getAllWatchEvents();
+        console.log("Fetched watch events:", allWatchEvents);
+        
+        // Create a map of content IDs to watch status
+        const watchEventMap = allWatchEvents.reduce((acc, event) => {
+          acc[event.courseLessonContentId] = true;
+          return acc;
+        }, {} as Record<string, boolean>);
+        
+        setWatchEvents(watchEventMap);
+
         // Select lesson based on lessonId; if no lessonId or invalid, default to first lesson
         let initialLesson: CourseLessonResponseDTO | null = null;
         if (lessonId) {
@@ -74,7 +88,7 @@ export default function CourseLessonPage() {
           });
         }
       } catch (error) {
-        console.error("Error in fetchLessons:", error);
+        console.error("Error in fetchData:", error);
         toast({
           title: "Erro ao carregar aulas",
           description: "Não foi possível carregar as aulas do curso. Tente novamente mais tarde.",
@@ -86,7 +100,7 @@ export default function CourseLessonPage() {
       }
     }
 
-    fetchLessons();
+    fetchData();
   }, [courseId, lessonId, toast]);
 
   const handleLessonSelect = (lesson: CourseLessonResponseDTO) => {
@@ -95,10 +109,10 @@ export default function CourseLessonPage() {
   };
 
   const handleCompleteLesson = async () => {
-    if (!selectedLesson || !courseId) {
+    if (!selectedLesson || !courseId || !studentId) {
       toast({
         title: "Erro",
-        description: "Nenhuma aula selecionada ou curso inválido.",
+        description: "Nenhuma aula selecionada, curso inválido ou usuário não autenticado.",
         variant: "destructive",
       });
       return;
@@ -113,10 +127,17 @@ export default function CourseLessonPage() {
 
       const watchEvent = await CourseLessonContentWatchEventStudentAPI.createWatchEvent({
         courseLessonContentId: content.id,
-        studentId: localStorage.getItem("userId"), // Replace with actual student ID from auth context
+        studentId: studentId,
       });
 
       console.log("Watch event created:", watchEvent);
+      
+      // Update watch events state
+      setWatchEvents(prev => ({
+        ...prev,
+        [content.id]: true
+      }));
+      
       toast({
         title: "Aula Concluída",
         description: "A aula foi marcada como concluída com sucesso!",
@@ -129,6 +150,17 @@ export default function CourseLessonPage() {
         variant: "destructive",
       });
     }
+  };
+
+  // Check if the current lesson is completed
+  const isLessonCompleted = () => {
+    if (!selectedLesson || selectedLesson.content.length === 0) {
+      return false;
+    }
+    
+    // Check if the first content item is marked as watched
+    const firstContentId = selectedLesson.content[0].id;
+    return !!watchEvents[firstContentId];
   };
 
   console.log("Rendering with loading:", loading, "lessons length:", lessons.length, "selectedLesson:", selectedLesson);
@@ -168,20 +200,27 @@ export default function CourseLessonPage() {
           <CardContent>
             <ScrollArea className="h-[calc(100vh-200px)]">
               <div className="space-y-2">
-                {lessons.map((lesson) => (
-                  <Button
-                    key={lesson.id}
-                    variant={selectedLesson?.id === lesson.id ? "default" : "ghost"}
-                    className="w-full justify-start text-left"
-                    onClick={() => handleLessonSelect(lesson)}
-                    asChild
-                  >
-                    <Link to={`/dashboard/cursos/${courseId}/visualizar/aulas/${lesson.id}`}>
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      {lesson.name}
-                    </Link>
-                  </Button>
-                ))}
+                {lessons.map((lesson) => {
+                  const isCompleted = lesson.content.length > 0 && !!watchEvents[lesson.content[0].id];
+                  
+                  return (
+                    <Button
+                      key={lesson.id}
+                      variant={selectedLesson?.id === lesson.id ? "default" : "ghost"}
+                      className="w-full justify-start text-left"
+                      onClick={() => handleLessonSelect(lesson)}
+                      asChild
+                    >
+                      <Link to={`/dashboard/cursos/${courseId}/visualizar/aulas/${lesson.id}`}>
+                        <div className="flex items-center w-full">
+                          <BookOpen className="h-4 w-4 mr-2" />
+                          <span className="flex-1">{lesson.name}</span>
+                          {isCompleted && <CheckCircle className="h-4 w-4 ml-2 text-green-500" />}
+                        </div>
+                      </Link>
+                    </Button>
+                  );
+                })}
               </div>
             </ScrollArea>
           </CardContent>
@@ -200,10 +239,17 @@ export default function CourseLessonPage() {
                 )}
               </div>
               {selectedLesson && (
-                <Button onClick={handleCompleteLesson} variant="default" size="sm">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Concluir Aula
-                </Button>
+                isLessonCompleted() ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                    Aula Concluída
+                  </Button>
+                ) : (
+                  <Button onClick={handleCompleteLesson} variant="default" size="sm">
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Concluir Aula
+                  </Button>
+                )
               )}
             </div>
           </CardHeader>

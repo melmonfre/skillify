@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { AdminSidebar } from "@/components/layout/AdminSidebar";
@@ -56,6 +56,30 @@ function App() {
     return null;
   };
 
+  // ShouldHideSidebar component to check if the current route should hide the sidebar
+  const ShouldHideSidebar = ({ children }) => {
+    const location = useLocation();
+    const lessonPageRegex = /^\/dashboard\/cursos\/[^/]+\/visualizar\/aulas(\/[^/]+)?$/;
+    
+    // Check if the current path matches our lesson page pattern
+    const hideSidebar = lessonPageRegex.test(location.pathname);
+
+    return hideSidebar ? (
+      // Return just the main content without the sidebar
+      <main className="flex-1 w-full">
+        {children}
+      </main>
+    ) : (
+      // Return the regular layout with sidebar
+      <div className="flex min-h-screen w-full">
+        <StudentSidebar />
+        <main className="flex-1">
+          {children}
+        </main>
+      </div>
+    );
+  };
+
   const AuthWrapper = ({ children, requiredRole }) => {
     if (!authChecked) {
       return null; // or loading spinner
@@ -107,12 +131,9 @@ function App() {
             element={
               <AuthWrapper requiredRole="ESTUDANTE">
                 <SidebarProvider>
-                  <div className="flex min-h-screen w-full">
-                    <StudentSidebar />
-                    <main className="flex-1">
-                      <StudentRoutes />
-                    </main>
-                  </div>
+                  <ShouldHideSidebar>
+                    <StudentRoutes />
+                  </ShouldHideSidebar>
                 </SidebarProvider>
               </AuthWrapper>
             }

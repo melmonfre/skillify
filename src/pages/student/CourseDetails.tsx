@@ -16,11 +16,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   BookOpen,
   Clock,
-  Users,
   CheckCircle,
   FileText,
   Download,
-  ChevronRight,
 } from "lucide-react";
 import { CourseStudentAPI } from "@/api/student/controllers/CourseStudentAPI";
 import { CourseLessonContentStudentAPI } from "@/api/student/controllers/CourseLessonContentStudentAPI";
@@ -102,22 +100,45 @@ export default function CourseDetails() {
   const completedContentItems = watchEvents.length;
   const progress = totalContentItems > 0 ? Math.round((completedContentItems / totalContentItems) * 100) : 0;
 
-  // Find the last watched lesson/content
+  // Find the last watched content and determine the next lesson
   const lastWatchedEvent = watchEvents.sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )[0];
-  const lastLesson = lastWatchedEvent
-    ? lessons.find(lesson => 
-        lesson.content.some(content => content.id === lastWatchedEvent.courseLessonContentId)
-      )
-    : null;
-  const lastContent = lastWatchedEvent
-    ? lessons
-        .flatMap(lesson => lesson.content)
-        .find(content => content.id === lastWatchedEvent.courseLessonContentId)
-    : null;
 
-  // Group lessons by fetched categories
+  // Create ordered lessons based on category and lesson array order
+  const orderedLessons = categories.flatMap(category => 
+    lessons.filter(lesson => lesson.courseLessonCategory?.id === category.id)
+  );
+  console.log("Ordered Lessons:", orderedLessons.map(l => l.name));
+
+  let nextLesson = null;
+  let lastWatchedLesson = null;
+  let lastWatchedContent = null;
+
+  if (lastWatchedEvent && orderedLessons.length > 0) {
+    lastWatchedLesson = lessons.find(lesson => 
+      lesson.content.some(content => content.id === lastWatchedEvent.courseLessonContentId)
+    );
+    lastWatchedContent = lessons
+      .flatMap(lesson => lesson.content)
+      .find(content => content.id === lastWatchedEvent.courseLessonContentId);
+
+    if (lastWatchedLesson) {
+      const lastLessonIndex = orderedLessons.findIndex(lesson => lesson.id === lastWatchedLesson.id);
+      console.log("Last Watched Lesson:", lastWatchedLesson.name, "Index:", lastLessonIndex);
+      // Get the next lesson if it exists, otherwise fall back to the last watched lesson
+      nextLesson = lastLessonIndex + 1 < orderedLessons.length 
+        ? orderedLessons[lastLessonIndex + 1]
+        : lastWatchedLesson;
+      console.log("Next Lesson:", nextLesson ? nextLesson.name : "None");
+    }
+  } else if (orderedLessons.length > 0) {
+    // If no watch events but lessons exist, set nextLesson to the first lesson
+    nextLesson = orderedLessons[0];
+    console.log("No watch events, setting nextLesson to first lesson:", nextLesson.name);
+  }
+
+  // Group lessons by fetched categories for display
   const modules = categories.map(category => ({
     id: category.id,
     title: category.name,
@@ -162,11 +183,6 @@ export default function CourseDetails() {
             </div>
 
             <div className="flex items-center gap-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">1234 alunos</span>
-            </div>
-
-            <div className="flex items-center gap-1">
               <BookOpen className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">{lessons.length} aulas</span>
             </div>
@@ -194,11 +210,21 @@ export default function CourseDetails() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button className="flex-1">
+            <Button 
+              className="flex-1"
+              onClick={() => {
+                if (nextLesson) {
+                  navigate(`/dashboard/cursos/${course.id}/visualizar/aulas/${nextLesson.id}`);
+                } else {
+                  navigate(`/dashboard/cursos/${course.id}/visualizar/aulas`);
+                }
+              }}
+              disabled={!nextLesson && orderedLessons.length === 0}
+            >
               <BookOpen className="mr-2 h-4 w-4" />
-              Continuar curso
+              {nextLesson ? "Continuar curso" : "Iniciar curso"}
             </Button>
-            <Link to={`/cursos/${course.id}/todas-aulas`}>
+            <Link to={`/dashboard/cursos/${course.id}/visualizar/aulas`}>
               <Button variant="outline" className="flex-1">
                 Ver Todas as Aulas
               </Button>
@@ -212,13 +238,13 @@ export default function CourseDetails() {
               <CardTitle className="text-lg">Última aula visualizada</CardTitle>
             </CardHeader>
             <CardContent>
-              {lastLesson && lastContent ? (
+              {lastWatchedLesson && lastWatchedContent ? (
                 <div className="flex items-center gap-3">
                   <div className="bg-primary/10 p-2 rounded-md">
                     <BookOpen className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-medium">{lastLesson.name}</h3>
+                    <h3 className="font-medium">{lastWatchedLesson.name}</h3>
                     <p className="text-sm text-muted-foreground">Continuar de onde parou</p>
                   </div>
                 </div>
@@ -227,11 +253,15 @@ export default function CourseDetails() {
               )}
             </CardContent>
             <CardFooter>
-              <Button className="w-full" disabled={!lastLesson}   onClick={() => {
-    if (lastLesson) {
-      navigate(`/cursos/${course.id}/visualizar/aulas/${lastLesson.id}`);
-    }
-  }}>
+              <Button 
+                className="w-full" 
+                disabled={!nextLesson}
+                onClick={() => {
+                  if (nextLesson) {
+                    navigate(`/dashboard/cursos/${course.id}/visualizar/aulas/${nextLesson.id}`);
+                  }
+                }}
+              >
                 Continuar visualizando
               </Button>
             </CardFooter>
@@ -298,23 +328,19 @@ export default function CourseDetails() {
                           <p className="text-xs text-muted-foreground">{lesson.duration} minutos</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm"   onClick={() => {
-     
-      navigate(`/dashboard/cursos/${course.id}/visualizar/aulas/${lesson.id}`);
-    
-  }}>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          navigate(`/dashboard/cursos/${course.id}/visualizar/aulas/${lesson.id}`);
+                        }}
+                      >
                         {isCompleted ? "Rever" : "Visualizar"}
                       </Button>
                     </div>
                   );
                 })}
               </CardContent>
-              <CardFooter>
-                <Button variant="outline" className="w-full">
-                  <ChevronRight className="mr-2 h-4 w-4" />
-                  Ver todas as aulas deste módulo
-                </Button>
-              </CardFooter>
             </Card>
           ))}
         </TabsContent>

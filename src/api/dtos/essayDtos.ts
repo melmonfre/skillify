@@ -16,4 +16,5 @@ export interface EssayResponseDTO {
   minWords: number;
   maxDate: string; // ISO datetime string
   classroom: ClassroomResponseDTO;
+  maxAttempts: number;
 }
