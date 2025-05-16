@@ -7,14 +7,17 @@ import { toast } from "sonner"
 import { useEffect, useState } from "react"
 import { EssayStudentAPI } from "../../api/student/controllers/EssayStudentAPI"
 import { EssayCorrectionStudentAPI } from "../../api/student/controllers/EssayCorrectionStudentAPI"
+import { EssayExecutionStudentAPI } from "../../api/student/controllers/EssayExecutionStudentAPI"
 import { EssayResponseDTO } from "../../api/dtos/essayDtos"
 import { EssayCorrectionResponseDTO } from "../../api/dtos/essayCorrectionDtos"
+import { EssayExecutionResponseDTO } from "../../api/dtos/essayExecutionDtos"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const Essays = () => {
   const navigate = useNavigate()
   const [essays, setEssays] = useState<EssayResponseDTO[]>([])
   const [correctedEssays, setCorrectedEssays] = useState<EssayCorrectionResponseDTO[]>([])
+  const [essayExecutions, setEssayExecutions] = useState<EssayExecutionResponseDTO[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("pending")
 
@@ -32,6 +35,11 @@ const Essays = () => {
         const corrections = await EssayCorrectionStudentAPI.getAllEssayCorrections()
         console.log('Fetched corrections:', corrections)
         setCorrectedEssays(corrections)
+
+        // Fetch essay executions
+        const executions = await EssayExecutionStudentAPI.getAllMyEssayExecutions()
+        console.log('Fetched essay executions:', executions)
+        setEssayExecutions(executions)
 
         setLoading(false)
       } catch (error) {
@@ -51,7 +59,7 @@ const Essays = () => {
 
   const handleViewCorrection = (correctionId: string) => {
     console.log('Navigating to correction with ID:', correctionId)
-    navigate(`/dashboard/redacoes/correcao/${ correctionId}`)
+    navigate(`/dashboard/redacoes/correcao/${correctionId}`)
     toast.success("Carregando correção...")
   }
 
@@ -76,6 +84,16 @@ const Essays = () => {
       correction.competencia4Score +
       correction.competencia5Score
     )
+  }
+
+  // Check if an essay has an execution
+  const hasEssayExecution = (essayId: string) => {
+    return essayExecutions.some(execution => execution.essay.id === essayId)
+  }
+
+  // Check if an essay has a correction
+  const hasEssayCorrection = (essayId: string) => {
+    return correctedEssays.some(correction => correction.essay.id === essayId)
   }
 
   if (loading) {
@@ -107,7 +125,7 @@ const Essays = () => {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mt-4">
               {essays
-                .filter(essay => new Date(essay.maxDate) > new Date())
+                .filter(essay => new Date(essay.maxDate) > new Date() && !hasEssayCorrection(essay.id))
                 .map((essay) => (
                   <Card key={essay.id}>
                     <CardHeader>
@@ -129,8 +147,9 @@ const Essays = () => {
                       <Button 
                         className="w-full" 
                         onClick={() => handleStartEssay(essay.id)}
+                        disabled={hasEssayExecution(essay.id)}
                       >
-                        Começar Redação
+                        {hasEssayExecution(essay.id) ? "Redação já realizada" : "Começar Redação"}
                       </Button>
                     </CardFooter>
                   </Card>

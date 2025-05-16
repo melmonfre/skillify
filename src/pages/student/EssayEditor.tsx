@@ -14,7 +14,13 @@ const EssayEditor = () => {
   const [loading, setLoading] = useState(true)
   const [essay, setEssay] = useState<EssayResponseDTO | null>(null)
   const { id: essayId } = useParams<{ id: string }>()
-  const navigate = useNavigate() // Add navigation hook
+  const navigate = useNavigate()
+
+  // Calculate word count
+  const wordCount = content.trim()
+    ? content.trim().split(/\s+/).filter(word => word.length > 0).length
+    : 0
+  const meetsMinWords = essay?.minWords ? wordCount >= essay.minWords : true
 
   // Load essay data
   useEffect(() => {
@@ -46,6 +52,11 @@ const EssayEditor = () => {
       return;
     }
 
+    if (!meetsMinWords) {
+      toast.error(`A redação deve ter no mínimo ${essay?.minWords} palavras`);
+      return;
+    }
+
     try {
       const executionDTO: EssayExecutionCreateDTO = {
         essayId,
@@ -55,7 +66,7 @@ const EssayEditor = () => {
 
       await EssayExecutionStudentAPI.createEssayExecution(executionDTO);
       toast.success("Redação enviada para correção!");
-      navigate("/dashboard/redacoes"); // Navigate after successful submission
+      navigate("/dashboard/redacoes");
     } catch (error) {
       toast.error("Erro ao enviar redação");
       console.error(error);
@@ -96,7 +107,7 @@ const EssayEditor = () => {
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={!content.trim()}
+            disabled={!content.trim() || !meetsMinWords}
           >
             Enviar para Correção
           </Button>
@@ -128,9 +139,14 @@ const EssayEditor = () => {
             onChange={(e) => setContent(e.target.value)}
           />
           <div className="mt-4 text-sm text-muted-foreground text-right">
-            {content.length} caracteres
+            {wordCount} palavras
             {essay.minWords > 0 && (
-              <span> (Recomendado: {essay.minWords} palavras)</span>
+              <span> (Mínimo: {essay.minWords} palavras)</span>
+            )}
+            {essay.minWords > 0 && !meetsMinWords && (
+              <p className="text-red-500 text-left">
+                A redação deve ter pelo menos {essay.minWords} palavras para ser enviada.
+              </p>
             )}
           </div>
         </Card>

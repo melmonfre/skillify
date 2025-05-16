@@ -12,6 +12,7 @@ export interface RegisterRequest {
   role: string;
   classId?: string;
   expertise? : string;
+  horarios? : string[];
 }
   
   export interface AuthenticationRequest {

@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+
 import { Card } from "@/components/ui/card"
 import { EssayExecutionMentorAPI } from "@/api/mentor/controllers/EssayExecutionMentorAPI"
 import { EssayExecutionResponseDTO } from "@/api/dtos/essayExecutionDtos"
+import { Textarea } from "../ui/textarea"
 
 interface CorrectionForm {
   estruturaCoesaoComentario: string
@@ -18,23 +19,25 @@ interface CorrectionForm {
   competencyScore: string
 }
 
-interface CorrectionDialogProps {
+interface UpdateCorrectionDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   form: CorrectionForm
   onFormChange: (form: CorrectionForm) => void
   onSubmit: (form: CorrectionForm) => void
   executionId: string
+  correctionId: string
 }
 
-export const CorrectionDialog = ({ 
+export const UpdateCorrectionDialog = ({ 
   open, 
   onOpenChange, 
   form, 
   onFormChange,
   onSubmit,
-  executionId
-}: CorrectionDialogProps) => {
+  executionId,
+  correctionId
+}: UpdateCorrectionDialogProps) => {
   const [execution, setExecution] = useState<EssayExecutionResponseDTO | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -63,7 +66,7 @@ export const CorrectionDialog = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl bg-slate-900 border-slate-800">
         <DialogHeader>
-          <DialogTitle className="text-white">Corrigir Redação</DialogTitle>
+          <DialogTitle className="text-white">Atualizar Correção</DialogTitle>
         </DialogHeader>
         <div className="grid gap-6 py-4">
           <div className="space-y-2">
@@ -178,7 +181,7 @@ export const CorrectionDialog = ({
             onClick={handleSubmit}
             className="bg-purple-600 hover:bg-purple-700 text-white border-none"
           >
-            Enviar Correção
+            Atualizar Correção
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -21,6 +21,7 @@ export enum UserRole {
     xp? : string;
     level? : string;
     expertise? : string;
+    horarios?: string[];
   }
   
   export interface UserUpdateRequest {
@@ -34,6 +35,7 @@ export enum UserRole {
     weeklyReport: boolean;
     studyReminder: boolean;
     role: string;
+    horarios? : string[];
   }
 
   export interface RegisterRequest {
@@ -47,4 +49,5 @@ export enum UserRole {
     weeklyReport: boolean;
     studyReminder: boolean;
     role: string;
+    horarios? : string[];
   }

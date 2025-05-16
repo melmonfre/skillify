@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Search, Plus } from "lucide-react"
@@ -9,6 +8,7 @@ import { EssayAssignmentCard } from "@/components/redacoes/EssayAssignmentCard"
 import { EssayCorrectionCard } from "@/components/redacoes/EssayCorrectionCard"
 import { CorrectedEssayCard } from "@/components/redacoes/CorrectedEssayCard"
 import { CorrectionDialog } from "@/components/redacoes/CorrectionDialog"
+import { UpdateCorrectionDialog } from "@/components/redacoes/UpdateCorrectionDialog"
 import { EssayDetailsDialog } from "@/components/redacoes/EssayDetailsDialog"
 import { NewEssayDialog } from "@/components/redacoes/NewEssayDialog"
 import { CorrectionDetailsDialog } from "@/components/redacoes/CorrectionDetailsDialog"
@@ -22,7 +22,8 @@ import { ClassroomMentorAPI } from "@/api/mentor/controllers/ClassroomMentorAPI"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
 interface CorrectionForm {
-  generalComments: string
+  estruturaCoesaoComentario: string
+  argumentacaoComentario: string
   structureScore: string
   argumentationScore: string
   proposalScore: string
@@ -34,6 +35,7 @@ const MentorRedacoes = () => {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [isCorrectionOpen, setIsCorrectionOpen] = useState(false)
+  const [isUpdateCorrectionOpen, setIsUpdateCorrectionOpen] = useState(false)
   const [isNewEssayOpen, setIsNewEssayOpen] = useState(false)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const [isCorrectionDetailsOpen, setIsCorrectionDetailsOpen] = useState(false)
@@ -49,7 +51,8 @@ const MentorRedacoes = () => {
   const [activeTab, setActiveTab] = useState("all")
 
   const [correctionForm, setCorrectionForm] = useState<CorrectionForm>({
-    generalComments: "",
+    estruturaCoesaoComentario: "",
+    argumentacaoComentario: "",
     structureScore: "",
     argumentationScore: "",
     proposalScore: "",
@@ -94,7 +97,8 @@ const MentorRedacoes = () => {
   const handleStartCorrection = (executionId: string) => {
     setSelectedEssayExecution(executionId)
     setCorrectionForm({
-      generalComments: "",
+      estruturaCoesaoComentario: "",
+      argumentacaoComentario: "",
       structureScore: "",
       argumentationScore: "",
       proposalScore: "",
@@ -102,6 +106,21 @@ const MentorRedacoes = () => {
       competencyScore: ""
     })
     setIsCorrectionOpen(true)
+  }
+
+  const handleUpdateCorrection = (correction: EssayCorrectionResponseDTO) => {
+    setSelectedCorrectionId(correction.id)
+    setSelectedEssayExecution(correction.essayExecution.id)
+    setCorrectionForm({
+      estruturaCoesaoComentario: correction.estruturaCoesaoComentario,
+      argumentacaoComentario: correction.argumentacaoComentario,
+      structureScore: correction.competencia1Score.toString(),
+      argumentationScore: correction.competencia2Score.toString(),
+      proposalScore: correction.competencia3Score.toString(),
+      languageScore: correction.competencia4Score.toString(),
+      competencyScore: correction.competencia5Score.toString()
+    })
+    setIsUpdateCorrectionOpen(true)
   }
 
   const handleSubmitCorrection = async (form: CorrectionForm) => {
@@ -117,8 +136,8 @@ const MentorRedacoes = () => {
         essayId: execution.essay.id,
         mentorId: mentorId,
         essayExecutionId: selectedEssayExecution,
-        estruturaCoesaoComentario: form.generalComments,
-        argumentacaoComentario: form.generalComments,
+        estruturaCoesaoComentario: form.estruturaCoesaoComentario,
+        argumentacaoComentario: form.argumentacaoComentario,
         conquistas: [EssayConquest.ARGUMENTACAO_SOLIDA],
         competencia1Score: parseInt(form.structureScore) || 0,
         competencia2Score: parseInt(form.argumentationScore) || 0,
@@ -142,6 +161,47 @@ const MentorRedacoes = () => {
         variant: "destructive",
       })
       console.error('Error submitting correction:', error)
+    }
+  }
+
+  const handleSubmitUpdateCorrection = async (form: CorrectionForm) => {
+    try {
+      const execution = essayExecutions.find(e => e.id === selectedEssayExecution)
+      if (!execution) {
+        throw new Error("Essay execution not found")
+      }
+
+      const mentorId = localStorage.getItem("userId") // Replace with actual mentor ID from auth
+
+      const updateDTO: EssayCorrectionCreateDTO = {
+        essayId: execution.essay.id,
+        mentorId: mentorId,
+        essayExecutionId: selectedEssayExecution,
+        estruturaCoesaoComentario: form.estruturaCoesaoComentario,
+        argumentacaoComentario: form.argumentacaoComentario,
+        conquistas: [EssayConquest.ARGUMENTACAO_SOLIDA],
+        competencia1Score: parseInt(form.structureScore) || 0,
+        competencia2Score: parseInt(form.argumentationScore) || 0,
+        competencia3Score: parseInt(form.proposalScore) || 0,
+        competencia4Score: parseInt(form.languageScore) || 0,
+        competencia5Score: parseInt(form.competencyScore) || 0,
+      }
+
+      const updatedCorrection = await EssayCorrectionMentorAPI.updateEssayCorrection(selectedCorrectionId, updateDTO)
+      setCorrectedEssays(correctedEssays.map(c => c.id === selectedCorrectionId ? updatedCorrection : c))
+      
+      toast({
+        title: "Correção atualizada",
+        description: "A correção foi atualizada com sucesso!"
+      })
+      setIsUpdateCorrectionOpen(false)
+    } catch (error) {
+      toast({
+        title: "Erro ao atualizar correção",
+        description: "Não foi possível atualizar a correção",
+        variant: "destructive",
+      })
+      console.error('Error updating correction:', error)
     }
   }
 
@@ -179,6 +239,10 @@ const MentorRedacoes = () => {
       title: "Visualizando correção",
       description: "Carregando detalhes da correção..."
     })
+  }
+
+  const handleDeleteEssay = (essayId: string) => {
+    setEssays(essays.filter(essay => essay.id !== essayId))
   }
 
   const filteredEssays = essays.filter(essay =>
@@ -251,10 +315,12 @@ const MentorRedacoes = () => {
               {filteredEssays.map(essay => (
                 <EssayAssignmentCard 
                   key={essay.id}
+                  essayId={essay.id}
                   title={essay.theme}
                   classroom={essay.classroom.name}
                   deadline={new Date(essay.maxDate).toLocaleDateString()}
                   onView={() => handleViewDetails(essay.id)}
+                  onDelete={handleDeleteEssay}
                 />
               ))}
             </div>
@@ -296,6 +362,7 @@ const MentorRedacoes = () => {
                     essayId={correction.essay.id}
                     correctionId={correction.id}
                     onView={() => handleViewCorrection(correction.id)}
+                    onUpdate={() => handleUpdateCorrection(correction)}
                   />
                 ))
               ) : (
@@ -315,6 +382,16 @@ const MentorRedacoes = () => {
         onFormChange={setCorrectionForm}
         onSubmit={handleSubmitCorrection}
         executionId={selectedEssayExecution}
+      />
+
+      <UpdateCorrectionDialog 
+        open={isUpdateCorrectionOpen}
+        onOpenChange={setIsUpdateCorrectionOpen}
+        form={correctionForm}
+        onFormChange={setCorrectionForm}
+        onSubmit={handleSubmitUpdateCorrection}
+        executionId={selectedEssayExecution}
+        correctionId={selectedCorrectionId}
       />
 
       <EssayDetailsDialog

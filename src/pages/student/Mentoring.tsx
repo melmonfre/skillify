@@ -1,19 +1,14 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, MessageSquare, Star, Users } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useEffect, useState } from "react"
-import { UserResponseDTO } from '@/api/dtos/userDtos' // Updated import path
+import { UserResponseDTO } from '@/api/dtos/userDtos'
 import { UserStudentAPI } from "@/api/student/controllers/UserStudentAPI"
 
 // Mock data for fields not in UserResponseDTO
 const mockMentorDetails = {
   avatar: "https://github.com/shadcn.png", // Default avatar
-  rating: "4.8",
-  studentsCount: "50+ alunos",
-  nextAvailability: "Hoje, 15:00",
-  responseTime: "Responde em até 2 horas"
 }
 
 const Mentoring = () => {
@@ -64,13 +59,12 @@ const Mentoring = () => {
             <CardHeader>
               <div className="flex items-center gap-4">
                 <img
-                  src={mockMentorDetails.avatar}
-                  alt={mentor.name}
+                  src={mentor.avatar? mentor.avatar : ""}
+                  alt={mentor.name.substring(0,1)}
                   className="w-16 h-16 rounded-full object-cover"
                 />
                 <div>
                   <CardTitle className="text-xl">{mentor.name}</CardTitle>
-                  {/* Using biography as specialty since specialty isn't in DTO */}
                   <p className="text-sm text-muted-foreground">
                     {mentor.biography.substring(0, 50) + "..."}
                   </p>
@@ -78,28 +72,6 @@ const Mentoring = () => {
               </div>
             </CardHeader>
             <CardContent className="flex flex-col flex-grow space-y-4">
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-1">
-                  <Star className="w-4 h-4 text-yellow-400" />
-                  <span>{mockMentorDetails.rating}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Users className="w-4 h-4 text-muted-foreground" />
-                  <span>{mockMentorDetails.studentsCount}</span>
-                </div>
-              </div>
-
-              <div className="space-y-2 flex-grow">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Calendar className="w-4 h-4" />
-                  <span>Próxima disponibilidade: {mockMentorDetails.nextAvailability}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <MessageSquare className="w-4 h-4" />
-                  <span>{mockMentorDetails.responseTime}</span>
-                </div>
-              </div>
-
               <Button 
                 className="w-full mt-auto" 
                 onClick={() => handleScheduleMentoring(mentor.id)}

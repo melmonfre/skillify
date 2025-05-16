@@ -1,8 +1,7 @@
-// src/components/redacoes/CorrectedEssayCard.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { FileText, Clock, Eye } from "lucide-react"
+import { FileText, Clock, Eye, Edit } from "lucide-react"
 
 interface CorrectedEssayCardProps {
   title: string
@@ -11,6 +10,7 @@ interface CorrectedEssayCardProps {
   essayId: string
   correctionId: string
   onView: () => void
+  onUpdate: () => void
 }
 
 export const CorrectedEssayCard = ({
@@ -19,7 +19,8 @@ export const CorrectedEssayCard = ({
   correctionDate,
   essayId,
   correctionId,
-  onView
+  onView,
+  onUpdate
 }: CorrectedEssayCardProps) => (
   <Card className="overflow-hidden bg-gradient-to-br from-black/40 to-black/20 border-slate-800 hover:border-slate-700 transition-all duration-300">
     <CardHeader className="p-4 pb-0">
@@ -41,7 +42,7 @@ export const CorrectedEssayCard = ({
           <span>Corrigido em: {correctionDate}</span>
         </div>
       </div>
-      <div className="mt-4">
+      <div className="mt-4 space-y-2">
         <Button
           variant="outline"
           className="w-full bg-white/5 border-slate-800 hover:bg-white/10 hover:border-slate-700 text-white"
@@ -49,6 +50,14 @@ export const CorrectedEssayCard = ({
         >
           <Eye className="w-4 h-4 mr-2" />
           Ver Correção
+        </Button>
+        <Button
+          variant="outline"
+          className="w-full bg-white/5 border-slate-800 hover:bg-white/10 hover:border-slate-700 text-white"
+          onClick={onUpdate}
+        >
+          <Edit className="w-4 h-4 mr-2" />
+          Atualizar Correção
         </Button>
       </div>
     </CardContent>

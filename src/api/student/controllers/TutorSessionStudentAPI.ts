@@ -46,6 +46,24 @@ export class TutorSessionStudentAPI {
       throw error;
     }
   }
+
+    /**
+   * Gets tutor sessions for a specific mentor and date (student only)
+   * @param mentorId ID of the mentor
+   * @param date ISO string (yyyy-MM-dd)
+   * @returns Promise containing array of tutor session DTOs
+   */
+  static async getSessionsByMentorAndDate(mentorId: string, date: string): Promise<TutorSessionResponseDTO[]> {
+    try {
+      const response = await api.get<TutorSessionResponseDTO[]>('/api/student/tutor-sessions/by-mentor-and-date', {
+        params: { mentorId, date }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching sessions by mentor and date:', error);
+      throw error;
+    }
+  }
 }
 
 // Usage example:
