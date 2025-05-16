@@ -29,8 +29,8 @@ const EditMentorDialog = ({ open, onOpenChange, onSubmit, mentor }: EditMentorDi
   
   // Initialize horarios when mentor changes
   useEffect(() => {
-    if (mentor?.horariosDisponiveis) {
-      setHorarios(mentor.horariosDisponiveis)
+    if (mentor?.horarios) {
+      setHorarios(mentor.horarios)
     } else {
       setHorarios([])
     }

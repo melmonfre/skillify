@@ -64,6 +64,21 @@ export class TutorSessionStudentAPI {
       throw error;
     }
   }
+
+
+  /**
+   * Deletes a tutor session by ID for the authenticated student (student only)
+   * @param id Tutor session ID
+   * @returns Promise resolving when deletion is successful
+   */
+  static async deleteTutorSession(id: string): Promise<void> {
+    try {
+      await api.delete(`/api/student/tutor-sessions/${id}`);
+    } catch (error) {
+      console.error('Error deleting tutor session:', error);
+      throw error;
+    }
+  }
 }
 
 // Usage example:

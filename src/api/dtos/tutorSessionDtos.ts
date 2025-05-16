@@ -11,7 +11,7 @@ export interface TutorSessionCreateDTO {
   mentorId: string;
   title: string;
   date: string; // ISO date string (e.g., "2025-03-25")
-  dateHour: string; // ISO datetime string (e.g., "2025-03-25T14:30:00")
+  dateHour: string; // 8:00, 14:00  string
   type: SessionType;
   link: string;
   studentId: string;
@@ -21,8 +21,8 @@ export interface TutorSessionResponseDTO {
   id: string; // Assuming BaseResponseDTO provides this
   mentor: UserResponseDTO;
   title: string;
-  date: string; // ISO date string
-  dateHour: string; // ISO datetime string
+  date: string; // ISO date string (e.g., "2025-03-25")
+  dateHour: string; // 8:00, 14:00  string
   type: SessionType;
   link: string;
   student: UserResponseDTO;
