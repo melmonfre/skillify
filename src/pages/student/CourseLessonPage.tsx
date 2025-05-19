@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ChevronLeft, BookOpen, CheckCircle } from "lucide-react";
+import { ChevronLeft, BookOpen, CheckCircle, Menu } from "lucide-react";
 import { CourseStudentAPI } from "@/api/student/controllers/CourseStudentAPI";
 import { CourseLessonContentStudentAPI } from "@/api/student/controllers/CourseLessonContentStudentAPI";
 import { CourseLessonContentWatchEventStudentAPI } from "@/api/student/controllers/CourseLessonContentWatchEventStudentAPI";
@@ -17,6 +17,7 @@ export default function CourseLessonPage() {
   const [selectedLesson, setSelectedLesson] = useState<CourseLessonResponseDTO | null>(null);
   const [loading, setLoading] = useState(true);
   const [watchEvents, setWatchEvents] = useState<Record<string, boolean>>({});
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toast } = useToast();
   const studentId = localStorage.getItem("userId");
 
@@ -106,6 +107,7 @@ export default function CourseLessonPage() {
   const handleLessonSelect = (lesson: CourseLessonResponseDTO) => {
     console.log("Selected lesson:", lesson);
     setSelectedLesson(lesson);
+    setIsSidebarOpen(false); // Close sidebar on mobile after selection
   };
 
   const handleCompleteLesson = async () => {
@@ -182,54 +184,73 @@ export default function CourseLessonPage() {
   }
 
   return (
-    <div className="container py-8 flex flex-col md:flex-row gap-8 min-h-screen">
-      {/* Navbar for lessons */}
-      <div className="md:w-1/4">
-        <Card className="sticky top-8">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span>Aulas do Curso</span>
-              <Link to={`/dashboard/cursos/${courseId}`}>
-                <Button variant="ghost" size="sm">
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Voltar ao Curso
-                </Button>
-              </Link>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[calc(100vh-200px)]">
-              <div className="space-y-2">
-                {lessons.map((lesson) => {
-                  const isCompleted = lesson.content.length > 0 && !!watchEvents[lesson.content[0].id];
-                  
-                  return (
-                    <Button
-                      key={lesson.id}
-                      variant={selectedLesson?.id === lesson.id ? "default" : "ghost"}
-                      className="w-full justify-start text-left"
-                      onClick={() => handleLessonSelect(lesson)}
-                      asChild
-                    >
-                      <Link to={`/dashboard/cursos/${courseId}/visualizar/aulas/${lesson.id}`}>
-                        <div className="flex items-center w-full">
-                          <BookOpen className="h-4 w-4 mr-2" />
-                          <span className="flex-1">{lesson.name}</span>
-                          {isCompleted && <CheckCircle className="h-4 w-4 ml-2 text-green-500" />}
-                        </div>
-                      </Link>
-                    </Button>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
+    <div className="flex min-h-screen">
+      {/* Sidebar for lessons */}
+      <div
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-background border-r transition-transform duration-300 ease-in-out transform ${
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } md:translate-x-0 md:static md:w-72`}
+      >
+        <div className="flex flex-col h-full">
+          <div className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg">Aulas do Curso</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="md:hidden"
+                onClick={() => setIsSidebarOpen(false)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            </div>
+            <Link to={`/dashboard/cursos/${courseId}`} className="mt-2 block">
+              <Button variant="ghost" size="sm" className="w-full justify-start">
+                <ChevronLeft className="h-4 w-4 mr-2" />
+                Voltar ao Curso
+              </Button>
+            </Link>
+          </div>
+          <ScrollArea className="flex-1">
+            <div className="p-4 space-y-2">
+              {lessons.map((lesson) => {
+                const isCompleted = lesson.content.length > 0 && !!watchEvents[lesson.content[0].id];
+                
+                return (
+                  <Button
+                    key={lesson.id}
+                    variant={selectedLesson?.id === lesson.id ? "default" : "ghost"}
+                    className="w-full justify-start text-left"
+                    onClick={() => handleLessonSelect(lesson)}
+                    asChild
+                  >
+                    <Link to={`/dashboard/cursos/${courseId}/visualizar/aulas/${lesson.id}`}>
+                      <div className="flex items-center w-full">
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        <span className="flex-1 truncate">{lesson.name}</span>
+                        {isCompleted && <CheckCircle className="h-4 w-4 ml-2 text-green-500" />}
+                      </div>
+                    </Link>
+                  </Button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Main content area */}
-      <div className="flex-1">
-        <Card>
+      <div className="flex-1 p-8 ml-0 md:ml-72">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="md:hidden mb-4"
+          onClick={() => setIsSidebarOpen(true)}
+        >
+          <Menu className="h-6 w-6" />
+          <span className="ml-2">Menu</span>
+        </Button>
+        <Card className="max-w-7xl mx-auto">
           <CardHeader>
             <div className="flex justify-between items-center">
               <div>
@@ -269,7 +290,7 @@ export default function CourseLessonPage() {
                         <img
                           src={content.value}
                           alt="Lesson content"
-                          className="max-w-full h-auto rounded-md border"
+                          className="max-w-full h-auto rounded-md border mx-auto"
                           onError={(e) => (e.currentTarget.style.display = "none")}
                         />
                       </div>
@@ -279,7 +300,7 @@ export default function CourseLessonPage() {
                         <video
                           src={content.value}
                           controls
-                          className="max-w-full h-auto rounded-md border"
+                          className="max-w-full h-auto rounded-md border mx-auto"
                           onError={(e) => (e.currentTarget.style.display = "none")}
                         />
                       </div>
@@ -287,10 +308,10 @@ export default function CourseLessonPage() {
                   </div>
                 ))
             ) : (
-              <p className="text-muted-foreground">Selecione uma aula para visualizar o conteúdo.</p>
+              <p className="text-muted-foreground text-center">Selecione uma aula para visualizar o conteúdo.</p>
             )}
             {selectedLesson && selectedLesson.content.length === 0 && (
-              <p className="text-muted-foreground">Nenhum conteúdo disponível para esta aula.</p>
+              <p className="text-muted-foreground text-center">Nenhum conteúdo disponível para esta aula.</p>
             )}
           </CardContent>
         </Card>
