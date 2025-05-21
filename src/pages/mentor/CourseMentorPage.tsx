@@ -26,6 +26,27 @@ interface LessonContentItem {
   value: string;
 }
 
+// Utility function to extract YouTube embed URL
+const getYouTubeEmbedUrl = (url: string): string | null => {
+  try {
+    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(youtubeRegex);
+    if (match && match[1]) {
+      return `https://www.youtube.com/embed/${match[1]}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+// Optional: Validate video URLs
+const validateVideoUrl = (url: string): boolean => {
+  const isYouTube = getYouTubeEmbedUrl(url) !== null;
+  const isVideoFile = /\.(mp4|webm|ogg)$/i.test(url);
+  return isYouTube || isVideoFile;
+};
+
 const MentorCoursePage = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
@@ -308,6 +329,15 @@ const MentorCoursePage = () => {
     field: "type" | "value",
     newValue: string | CourseLessonContentType
   ) => {
+    if (field === "value" && typeof newValue === "string" && contentItems[lessonId]?.find((item) => item.id === id)?.type === CourseLessonContentType.VIDEO) {
+      if (!validateVideoUrl(newValue)) {
+        toast({
+          title: "Aviso",
+          description: "Por favor, insira uma URL válida do YouTube ou um arquivo de vídeo (mp4, webm, ogg).",
+          variant: "destructive",
+        });
+      }
+    }
     setContentItems((prev) => ({
       ...prev,
       [lessonId]: (prev[lessonId] || []).map((item) =>
@@ -466,7 +496,7 @@ const MentorCoursePage = () => {
                       className="bg-slate-900 border-slate-800 text-white"
                       value={item.value}
                       onChange={(e) => updateContentItem(lessonId, item.id, "value", e.target.value)}
-                      placeholder={item.type === CourseLessonContentType.IMAGE ? "URL da imagem..." : "URL do vídeo..."}
+                      placeholder={item.type === CourseLessonContentType.IMAGE ? "URL da imagem..." : "URL do vídeo (YouTube ou arquivo mp4, webm, ogg)..." }
                     />
                     {item.value && item.type === CourseLessonContentType.IMAGE && (
                       <div className="mt-2">
@@ -480,12 +510,24 @@ const MentorCoursePage = () => {
                     )}
                     {item.value && item.type === CourseLessonContentType.VIDEO && (
                       <div className="mt-2">
-                        <video
-                          src={item.value}
-                          controls
-                          className="max-h-40 rounded-md border border-slate-800"
-                          onError={(e) => (e.currentTarget.style.display = "none")}
-                        />
+                        {getYouTubeEmbedUrl(item.value) ? (
+                          <div className="relative w-full" style={{ paddingTop: "56.25%" /* 16:9 aspect ratio */ }}>
+                            <iframe
+                              src={getYouTubeEmbedUrl(item.value)!}
+                              title="YouTube video"
+                              className="absolute top-0 left-0 w-full h-full rounded-md border border-slate-800"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                        ) : (
+                          <video
+                            src={item.value}
+                            controls
+                            className="max-w-full h-40 rounded-md border border-slate-800"
+                            onError={(e) => (e.currentTarget.style.display = "none")}
+                          />
+                        )}
                       </div>
                     )}
                   </div>
@@ -645,12 +687,24 @@ const MentorCoursePage = () => {
                                 onError={(e) => (e.currentTarget.style.display = "none")}
                               />
                             ) : (
-                              <video
-                                src={content.value}
-                                controls
-                                className="max-w-full h-auto rounded-md border border-slate-800"
-                                onError={(e) => (e.currentTarget.style.display = "none")}
-                              />
+                              getYouTubeEmbedUrl(content.value) ? (
+                                <div className="relative w-full" style={{ paddingTop: "56.25%" /* 16:9 aspect ratio */ }}>
+                                  <iframe
+                                    src={getYouTubeEmbedUrl(content.value)!}
+                                    title="YouTube video"
+                                    className="absolute top-0 left-0 w-full h-full rounded-md border border-slate-800"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                </div>
+                              ) : (
+                                <video
+                                  src={content.value}
+                                  controls
+                                  className="max-w-full h-auto rounded-md border border-slate-800"
+                                  onError={(e) => (e.currentTarget.style.display = "none")}
+                                />
+                              )
                             )}
                           </div>
                         ))}
