@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import {
   Users,
   BookOpen,
@@ -21,10 +21,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { UserAdminAPI } from "@/api/admin/controllers/UserAdminAPI"
+import { CourseAdminAPI } from "@/api/admin/controllers/CourseAdminAPI"
+import { EssayExecutionAdminAPI } from "@/api/admin/controllers/EssayExecutionAdminAPI"
 
 const AdminDashboard = () => {
   const { toast } = useToast()
@@ -32,6 +35,35 @@ const AdminDashboard = () => {
   const [showMentorDialog, setShowMentorDialog] = useState(false)
   const [showCourseDialog, setShowCourseDialog] = useState(false)
   const [showNotificationDialog, setShowNotificationDialog] = useState(false)
+  const [studentsCount, setStudentsCount] = useState(0)
+  const [mentorsCount, setMentorsCount] = useState(0)
+  const [coursesCount, setCoursesCount] = useState(0)
+  const [essaysCount, setEssaysCount] = useState(0)
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const students = await UserAdminAPI.getStudentsCount()
+        setStudentsCount(students)
+        
+        const mentors = await UserAdminAPI.getMentorsCount()
+        setMentorsCount(mentors)
+        
+        const courses = await CourseAdminAPI.getAllCourses()
+        setCoursesCount(courses.length)
+        
+        const essays = await EssayExecutionAdminAPI.getAllExecutions()
+        setEssaysCount(essays.length)
+      } catch (error) {
+        toast({
+          title: "Erro ao carregar dados",
+          description: "Não foi possível carregar as informações do dashboard",
+          className: "bg-red-500 text-white",
+        })
+      }
+    }
+    fetchData()
+  }, [toast])
 
   const handleAddMentor = () => {
     toast({
@@ -39,62 +71,32 @@ const AdminDashboard = () => {
       description: "Redirecionando para página de mentores...",
       className: "bg-green-500 text-white",
     })
-    navigate("/admin/mentores?action=new")
+    navigate("/admin/mentores")
   }
 
   const handleCreateCourse = () => {
-    setShowCourseDialog(true)
     toast({
       title: "Novo Curso",
-      description: "Abrindo formulário de criação de curso...",
+      description: "Redirecionando para página de cursos...",
       className: "bg-blue-500 text-white",
     })
+    navigate("/admin/cursos")
   }
 
   const handleSendNotification = () => {
-    setShowNotificationDialog(true)
     toast({
-      title: "Enviar Notificação",
-      description: "Abrindo painel de notificações...",
-      className: "bg-purple-500 text-white",
+      title: "Em Breve",
+      description: "Funcionalidade de envio de notificação estará disponível em breve!",
+      className: "bg-gray-500 text-white",
     })
   }
 
   const handleGenerateReport = () => {
     toast({
-      title: "Gerando Relatório",
-      description: "Iniciando geração do relatório...",
-      className: "bg-orange-500 text-white",
+      title: "Em Breve",
+      description: "Funcionalidade de geração de relatório estará disponível em breve!",
+      className: "bg-gray-500 text-white",
     })
-    
-    // Simulação da geração do relatório
-    setTimeout(() => {
-      toast({
-        title: "Relatório Gerado",
-        description: "O relatório foi gerado com sucesso! Baixando arquivo...",
-        className: "bg-green-500 text-white",
-      })
-      
-      // Dados detalhados para o CSV
-      const csvData = [
-        ["Data", "Total Alunos", "Novos Alunos", "Cursos Ativos", "Taxa Conclusão", "Receita Mensal", "Mentores Ativos", "Redações Enviadas"],
-        ["2024-03-01", "2543", "156", "156", "78%", "R$ 125.432", "48", "867"],
-        ["2024-03-02", "2565", "22", "157", "77%", "R$ 126.890", "48", "892"],
-        ["2024-03-03", "2589", "24", "157", "79%", "R$ 127.543", "49", "915"],
-        ["2024-03-04", "2612", "23", "158", "78%", "R$ 128.765", "49", "943"],
-        ["2024-03-05", "2634", "22", "158", "80%", "R$ 129.987", "50", "978"]
-      ].map(row => row.join(",")).join("\n")
-
-      const blob = new Blob([csvData], { type: "text/csv" })
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `relatorio-plataforma-${new Date().toISOString().split("T")[0]}.csv`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-    }, 2000)
   }
 
   return (
@@ -110,26 +112,14 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">Disponível em breve</div>
-      
-    </div>
-  )
-}
-
-export default AdminDashboard
-
-
-/*   <Card className="group hover:shadow-lg transition-all hover:-translate-y-1 bg-gradient-to-br from-background to-primary/5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="group hover:shadow-lg transition-all hover:-translate-y-1 bg-gradient-to-br from-background to-primary/5">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Alunos Ativos</CardTitle>
             <Users className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2,543</div>
-            <div className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-              +15% este mês
-              <div className="animate-pulse h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </div>
+            <div className="text-2xl font-bold">{studentsCount}</div>
           </CardContent>
         </Card>
 
@@ -139,11 +129,7 @@ export default AdminDashboard
             <UserCog className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">48</div>
-            <div className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-              +3 este mês
-              <div className="animate-pulse h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </div>
+            <div className="text-2xl font-bold">{mentorsCount}</div>
           </CardContent>
         </Card>
 
@@ -153,11 +139,7 @@ export default AdminDashboard
             <BookOpen className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">156</div>
-            <div className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-              +12 este mês
-              <div className="animate-pulse h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </div>
+            <div className="text-2xl font-bold">{coursesCount}</div>
           </CardContent>
         </Card>
 
@@ -167,11 +149,7 @@ export default AdminDashboard
             <BarChart className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">78%</div>
-            <div className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-              +5% que o mês anterior
-              <div className="animate-pulse h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </div>
+            <div className="text-2xl font-bold">--</div>
           </CardContent>
         </Card>
 
@@ -181,11 +159,7 @@ export default AdminDashboard
             <FileText className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">867</div>
-            <div className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-              +234 este mês
-              <div className="animate-pulse h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </div>
+            <div className="text-2xl font-bold">{essaysCount}</div>
           </CardContent>
         </Card>
 
@@ -195,11 +169,7 @@ export default AdminDashboard
             <TrendingUp className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 125.432</div>
-            <div className="text-xs text-emerald-500 font-medium flex items-center gap-1">
-              +18% que o mês anterior
-              <div className="animate-pulse h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            </div>
+            <div className="text-2xl font-bold">--</div>
           </CardContent>
         </Card>
       </div>
@@ -213,20 +183,7 @@ export default AdminDashboard
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {[
-              "Novo mentor cadastrado: João Silva",
-              "Curso de Python atingiu 100 alunos",
-              "5 novas redações aguardando correção",
-              "Novo material didático disponível",
-            ].map((notification, index) => (
-              <div 
-                key={index} 
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-accent transition-colors cursor-pointer group/item"
-              >
-                <Bell className="w-4 h-4 text-primary group-hover/item:scale-110 transition-transform" />
-                <p className="text-sm">{notification}</p>
-              </div>
-            ))}
+            <p className="text-sm text-muted-foreground">Nenhuma notificação disponível</p>
           </CardContent>
         </Card>
 
@@ -239,32 +196,38 @@ export default AdminDashboard
           </CardHeader>
           <CardContent className="grid gap-4">
             <Button 
-              onClick={handleAddMentor}
+              asChild
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white flex items-center gap-2 shadow-lg hover:shadow-green-500/20 transition-all"
             >
-              <UserCog className="w-4 h-4" />
-              Adicionar Novo Mentor
+              <Link to="/admin/mentores">
+                <UserCog className="w-4 h-4" />
+                Adicionar Novo Mentor
+              </Link>
             </Button>
             <Button 
-              onClick={handleCreateCourse}
+              asChild
               className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white flex items-center gap-2 shadow-lg hover:shadow-blue-500/20 transition-all"
             >
-              <BookOpen className="w-4 h-4" />
-              Criar Novo Curso
+              <Link to="/admin/cursos">
+                <BookOpen className="w-4 h-4" />
+                Criar Novo Curso
+              </Link>
             </Button>
             <Button 
               onClick={handleSendNotification}
-              className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white flex items-center gap-2 shadow-lg hover:shadow-purple-500/20 transition-all"
+              disabled
+              className="bg-gradient-to-r from-gray-600 to-gray-700 text-white flex items-center gap-2 shadow-lg transition-all"
             >
               <Send className="w-4 h-4" />
-              Enviar Notificação
+              Enviar Notificação (Em breve)
             </Button>
             <Button 
               onClick={handleGenerateReport}
-              className="bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white flex items-center gap-2 shadow-lg hover:shadow-orange-500/20 transition-all"
+              disabled
+              className="bg-gradient-to-r from-gray-600 to-gray-700 text-white flex items-center gap-2 shadow-lg transition-all"
             >
               <FileBarChart className="w-4 h-4" />
-              Gerar Relatório
+              Gerar Relatório (Em breve)
             </Button>
           </CardContent>
         </Card>
@@ -387,4 +350,9 @@ export default AdminDashboard
             </Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>  */
+      </Dialog>
+    </div>
+  )
+}
+
+export default AdminDashboard

@@ -62,4 +62,24 @@ export class UserAdminAPI {
       throw error;
     }
   }
+
+    static async getMentorsCount(): Promise<number> {
+    try {
+      const response = await api.get<number>('/api/admin/users/mentors/count');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching mentors count:', error);
+      throw error;
+    }
+  }
+
+  static async getStudentsCount(): Promise<number> {
+    try {
+      const response = await api.get<number>('/api/admin/users/students/count');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching students count:', error);
+      throw error;
+    }
+  }
 }
