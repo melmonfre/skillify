@@ -52,6 +52,7 @@ const StudentProgress = () => {
       try {
         // Fetch students
         const studentResponse = await UserMentorAPI.getStudentsForClassroom(selectedClassroomId)
+        console.log(selectedClassroomId)
         setStudents(studentResponse)
 
         // Fetch ranking

@@ -1,5 +1,5 @@
 import { MentorProgressStudent } from '@/api/dtos/mentorProgressDtos';
-import { UserResponseDTO } from '@/api/dtos/userDtos';
+import { MonthlyStudentsXpDTO, UserResponseDTO } from '@/api/dtos/userDtos';
 import { StudentRankingResponseDTO } from '@/api/dtos/studentRankingDtos';
 import api from '../../api';
 
@@ -83,6 +83,16 @@ export class UserMentorAPI {
       await api.put(`/api/mentor/users/${studentId}/classrooms`, classroomIds);
     } catch (error) {
       console.error(`Error updating classrooms for student ${studentId}:`, error);
+      throw error;
+    }
+  }
+
+    static async getXpCountAllStudentsMonthly(): Promise<MonthlyStudentsXpDTO[]> {
+    try {
+      const response = await api.get<MonthlyStudentsXpDTO[]>('/api/mentor/users/xp-monthly');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching monthly XP for all students:', error);
       throw error;
     }
   }

@@ -51,3 +51,8 @@ export enum UserRole {
     role: string;
     horarios? : string[];
   }
+
+  export interface MonthlyStudentsXpDTO {
+  month: string; // Format: "YYYY-MM"
+  totalXp: number;
+}
