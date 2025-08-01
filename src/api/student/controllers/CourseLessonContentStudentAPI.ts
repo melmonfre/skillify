@@ -1,4 +1,3 @@
-// src/api/student/controllers/CourseLessonContentStudentAPI.ts
 import api from '../../api';
 import { CourseLessonContentResponseDTO } from '../../dtos/courseLessonContentDtos';
 

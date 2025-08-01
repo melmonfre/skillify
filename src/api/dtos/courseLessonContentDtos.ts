@@ -1,4 +1,3 @@
-// src/api/dtos/courseLessonContentDtos.ts
 import { CourseLessonResponseDTO } from './courseLessonDtos';
 
 export enum CourseLessonContentType {
@@ -12,6 +11,7 @@ export interface CourseLessonContentCreateDTO {
   position: number;
   type: CourseLessonContentType;
   value: string;
+  videoFile?: File; // Added to match backend's MultipartFile
 }
 
 export interface CourseLessonContentResponseDTO {
@@ -20,4 +20,5 @@ export interface CourseLessonContentResponseDTO {
   position: number;
   type: CourseLessonContentType;
   value: string;
+  url?: string; // Added to match backend
 }

@@ -21,6 +21,20 @@ export default function CourseLessonPage() {
   const { toast } = useToast();
   const studentId = localStorage.getItem("userId");
 
+  // Utility function to extract YouTube embed URL
+  const getYouTubeEmbedUrl = (url: string): string | null => {
+    try {
+      const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+      const match = url.match(youtubeRegex);
+      if (match && match[1]) {
+        return `https://www.youtube.com/embed/${match[1]}`;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
   useEffect(() => {
     async function fetchData() {
       console.log("Starting fetchData with courseId:", courseId, "and lessonId:", lessonId);
@@ -297,12 +311,24 @@ export default function CourseLessonPage() {
                     )}
                     {content.type === CourseLessonContentType.VIDEO && (
                       <div className="mt-2">
-                        <video
-                          src={content.value}
-                          controls
-                          className="max-w-full h-auto rounded-md border mx-auto"
-                          onError={(e) => (e.currentTarget.style.display = "none")}
-                        />
+                        {getYouTubeEmbedUrl(content.url || content.value) ? (
+                          <div className="relative w-full" style={{ paddingTop: "56.25%" /* 16:9 aspect ratio */ }}>
+                            <iframe
+                              src={getYouTubeEmbedUrl(content.url || content.value)!}
+                              title="YouTube video"
+                              className="absolute top-0 left-0 w-full h-full rounded-md border mx-auto"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          </div>
+                        ) : (
+                          <video
+                            src={content.url || content.value}
+                            controls
+                            className="max-w-full h-auto rounded-md border mx-auto"
+                            onError={(e) => (e.currentTarget.style.display = "none")}
+                          />
+                        )}
                       </div>
                     )}
                   </div>

@@ -1,4 +1,3 @@
-// src/api/mentor/controllers/CourseLessonContentMentorAPI.ts
 import api from '../../api';
 import { CourseLessonContentResponseDTO, CourseLessonContentCreateDTO } from '../../dtos/courseLessonContentDtos';
 
@@ -39,9 +38,23 @@ export class CourseLessonContentMentorAPI {
    */
   static async createContent(content: CourseLessonContentCreateDTO): Promise<CourseLessonContentResponseDTO> {
     try {
+      const formData = new FormData();
+      formData.append('courseLessonId', content.courseLessonId);
+      formData.append('position', content.position.toString());
+      formData.append('type', content.type);
+      formData.append('value', content.value);
+      if (content.videoFile) {
+        formData.append('videoFile', content.videoFile);
+      }
+
       const response = await api.post<CourseLessonContentResponseDTO>(
         '/api/mentor/course-lesson-content',
-        content
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       );
       return response.data;
     } catch (error) {
@@ -58,9 +71,23 @@ export class CourseLessonContentMentorAPI {
    */
   static async updateContent(id: string, content: CourseLessonContentCreateDTO): Promise<CourseLessonContentResponseDTO> {
     try {
+      const formData = new FormData();
+      formData.append('courseLessonId', content.courseLessonId);
+      formData.append('position', content.position.toString());
+      formData.append('type', content.type);
+      formData.append('value', content.value);
+      if (content.videoFile) {
+        formData.append('videoFile', content.videoFile);
+      }
+
       const response = await api.put<CourseLessonContentResponseDTO>(
         `/api/mentor/course-lesson-content/${id}`,
-        content
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        }
       );
       return response.data;
     } catch (error) {
@@ -83,7 +110,6 @@ export class CourseLessonContentMentorAPI {
     }
   }
 }
-
 // Usage example:
 /*
 async function handleMentorContentOperations() {

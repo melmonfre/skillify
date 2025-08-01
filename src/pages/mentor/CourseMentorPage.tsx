@@ -24,6 +24,7 @@ interface LessonContentItem {
   id: string;
   type: CourseLessonContentType | null;
   value: string;
+  videoFile?: File | null;
 }
 
 // Utility function to extract YouTube embed URL
@@ -311,7 +312,7 @@ const MentorCoursePage = () => {
       ...prev,
       [lessonId]: [
         ...(prev[lessonId] || []),
-        { id: crypto.randomUUID(), type: null, value: "" },
+        { id: crypto.randomUUID(), type: null, value: "", videoFile: null },
       ],
     }));
   };
@@ -326,8 +327,8 @@ const MentorCoursePage = () => {
   const updateContentItem = (
     lessonId: string,
     id: string,
-    field: "type" | "value",
-    newValue: string | CourseLessonContentType
+    field: "type" | "value" | "videoFile",
+    newValue: string | CourseLessonContentType | File | null
   ) => {
     if (field === "value" && typeof newValue === "string" && contentItems[lessonId]?.find((item) => item.id === id)?.type === CourseLessonContentType.VIDEO) {
       if (!validateVideoUrl(newValue)) {
@@ -350,7 +351,7 @@ const MentorCoursePage = () => {
     try {
       setIsLoading(true);
       const items = contentItems[lessonId] || [];
-      const validItems = items.filter((item) => item.type && item.value);
+      const validItems = items.filter((item) => item.type && (item.value || item.videoFile));
 
       if (validItems.length === 0) {
         toast({
@@ -372,6 +373,7 @@ const MentorCoursePage = () => {
           position: maxPosition + index + 1,
           type: item.type!,
           value: item.value,
+          videoFile: item.videoFile || undefined,
         };
         return CourseLessonContentMentorAPI.createContent(contentData);
       });
@@ -490,25 +492,21 @@ const MentorCoursePage = () => {
                     placeholder="Digite o conteúdo textual..."
                     rows={3}
                   />
-                ) : (
+                ) : item.type === CourseLessonContentType.VIDEO ? (
                   <div className="space-y-2">
+                    <Input
+                      type="file"
+                      accept="video/mp4,video/webm,video/ogg"
+                      className="bg-slate-900 border-slate-800 text-white"
+                      onChange={(e) => updateContentItem(lessonId, item.id, "videoFile", e.target.files?.[0] || null)}
+                    />
                     <Input
                       className="bg-slate-900 border-slate-800 text-white"
                       value={item.value}
                       onChange={(e) => updateContentItem(lessonId, item.id, "value", e.target.value)}
-                      placeholder={item.type === CourseLessonContentType.IMAGE ? "URL da imagem..." : "URL do vídeo (YouTube ou arquivo mp4, webm, ogg)..." }
+                      placeholder="URL do vídeo (YouTube ou arquivo mp4, webm, ogg)..."
                     />
-                    {item.value && item.type === CourseLessonContentType.IMAGE && (
-                      <div className="mt-2">
-                        <img
-                          src={item.value}
-                          alt="Preview"
-                          className="max-h-40 rounded-md border border-slate-800"
-                          onError={(e) => (e.currentTarget.style.display = "none")}
-                        />
-                      </div>
-                    )}
-                    {item.value && item.type === CourseLessonContentType.VIDEO && (
+                    {item.value && (
                       <div className="mt-2">
                         {getYouTubeEmbedUrl(item.value) ? (
                           <div className="relative w-full" style={{ paddingTop: "56.25%" /* 16:9 aspect ratio */ }}>
@@ -528,6 +526,25 @@ const MentorCoursePage = () => {
                             onError={(e) => (e.currentTarget.style.display = "none")}
                           />
                         )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      className="bg-slate-900 border-slate-800 text-white"
+                      value={item.value}
+                      onChange={(e) => updateContentItem(lessonId, item.id, "value", e.target.value)}
+                      placeholder="URL da imagem..."
+                    />
+                    {item.value && item.type === CourseLessonContentType.IMAGE && (
+                      <div className="mt-2">
+                        <img
+                          src={item.value}
+                          alt="Preview"
+                          className="max-h-40 rounded-md border border-slate-800"
+                          onError={(e) => (e.currentTarget.style.display = "none")}
+                        />
                       </div>
                     )}
                   </div>
@@ -699,7 +716,7 @@ const MentorCoursePage = () => {
                                 </div>
                               ) : (
                                 <video
-                                  src={content.value}
+                                  src={content.url || content.value}
                                   controls
                                   className="max-w-full h-auto rounded-md border border-slate-800"
                                   onError={(e) => (e.currentTarget.style.display = "none")}
