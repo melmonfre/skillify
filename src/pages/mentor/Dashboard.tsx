@@ -57,7 +57,7 @@ const MentorDashboard = () => {
             xp: item.totalXp || 0,
           };
         });
-        setPerformanceData(formattedData);
+        setPerformanceData(formattedData.reverse());
 
         setLoading(false);
       } catch (err) {

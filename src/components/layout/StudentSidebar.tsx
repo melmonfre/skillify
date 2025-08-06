@@ -24,7 +24,6 @@ import {
   import { Link } from "react-router-dom"
   
   const menuItems = [
-    { title: "Dashboard", icon: LayoutDashboard, url: "/dashboard" },
     { title: "Cursos", icon: BookOpen, url: "/dashboard/cursos" },
     { title: "Progresso", icon: Target, url: "/dashboard/progresso" },
     { title: "Desafios", icon: Users, url: "/dashboard/desafios" },

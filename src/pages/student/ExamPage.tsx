@@ -134,6 +134,8 @@ export default function ExamPage() {
         duration // Add duration to the execution data
       }
 
+      console.log(executionData)
+
       const execution = await PracticeExecutionStudentAPI.createPracticeExecution(executionData)
       
       setIsFinished(true)

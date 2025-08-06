@@ -10,7 +10,8 @@ import {
   MessageSquare,
   GraduationCap,
   LogOut,
-  HelpCircle // Add this icon import
+  HelpCircle, // Add this icon import
+  Settings
 } from "lucide-react"
 import {
   Sidebar,
@@ -36,6 +37,7 @@ const menuItems = [
   { title: "Desafios", icon: Trophy, url: "/mentor/desafios" },
   { title: "Mensagens", icon: MessageSquare, url: "/mentor/mensagens" },
   { title: "Progresso", icon: BarChart, url: "/mentor/progresso" },
+  { title: "Configurações", icon: Settings, url: "/mentor/configuracoes" },
   { title: "Logout", icon: LogOut, url: "/logout" },
 ]
 

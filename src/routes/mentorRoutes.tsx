@@ -13,6 +13,7 @@ import NewChallenge from "@/pages/mentor/NewChallenge";
 import MentorExamPage from "@/pages/mentor/MentorExamePage";
 import MentorQuestionBank from "@/pages/mentor/MentorQuestionBank";
 import MentorCoursePage from "@/pages/mentor/CourseMentorPage";
+import Settings from "@/pages/mentor/Settings";
 
 export const MentorRoutes = () => {
   return (
@@ -32,6 +33,7 @@ export const MentorRoutes = () => {
       <Route path="progresso" element={<StudentProgress />} />
       <Route path="questoes" element={<MentorQuestionBank />} /> 
       <Route path="/cursos/:courseId" element={<MentorCoursePage />} />
+      <Route path="configuracoes" element={<Settings />} />
     </Routes>
   );
 };

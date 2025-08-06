@@ -5,6 +5,7 @@ import AdminCourses from "@/pages/admin/Courses"
 import AdminStudents from "@/pages/admin/Students"
 import AdminClasses from "@/pages/admin/Classes"
 import AdminPlans from "@/pages/admin/Plans"
+import Settings from "@/pages/admin/Settings"
 
 export const AdminRoutes = () => {
   return (
@@ -16,6 +17,7 @@ export const AdminRoutes = () => {
       <Route path="alunos" element={<AdminStudents />} />
       <Route path="turmas" element={<AdminClasses />} />
       <Route path="planos" element={<AdminPlans />} />
+      <Route path="configuracoes" element={<Settings />} />
     </Routes>
   )
 }

@@ -5,7 +5,8 @@ import {
   UserCog,
   Package,
   GraduationCap,
-  LogOut
+  LogOut,
+  Settings
 } from "lucide-react"
 import {
   Sidebar,
@@ -26,6 +27,7 @@ const menuItems = [
   { title: "Alunos", icon: Users, url: "/admin/alunos" },
   { title: "Turmas", icon: GraduationCap, url: "/admin/turmas" },
   { title: "Planos", icon: Package, url: "/admin/planos" },
+  { title: "Configurações", icon: Settings, url: "/admin/configuracoes" },
   { title: "Logout", icon: LogOut, url: "/logout" },
 ]
 

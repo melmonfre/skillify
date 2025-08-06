@@ -136,7 +136,7 @@ const Progress = () => {
                   value={classroom.classroomId}
                   className="text-white hover:bg-slate-800"
                 >
-                  {classroom.classroomName || `Turma ${classroom.classroomId}`}
+                  {classroom.classroomName || `Turma ${classroom.classroomName}`}
                 </SelectItem>
               ))
             )}
@@ -151,7 +151,7 @@ const Progress = () => {
         <RankingSection
           ranking={selectedRanking.ranking}
           isUser={isUser}
-          title={`Ranking - ${selectedRanking.classroomName || 'Turma ' + selectedRanking.classroomId}`}
+          title={`Ranking na turma`}
           description={`Sua posição: ${selectedRanking.yourPosition}`}
         />
       )}

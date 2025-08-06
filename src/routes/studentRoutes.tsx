@@ -29,7 +29,6 @@ export const StudentRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="dashboard" element={<StudentDashboard />} />
       <Route path="cursos" element={<Courses />} />
       <Route path="cursos/:id" element={<CourseDetails />} />
       <Route path="cursos/:id/aulas" element={<CourseLessons />} />
