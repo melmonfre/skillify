@@ -2,8 +2,9 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Search, MessageCircle, UserPlus } from "lucide-react"
+import { Search, MessageCircle, UserPlus, ArrowLeft } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Button } from "@/components/ui/button"
 import { CourseChat } from "@/components/CourseChat"
 import { MessageMentorAPI } from "@/api/mentor/controllers/MessageMentorAPI"
 import { UserMentorAPI } from "@/api/mentor/controllers/UserMentorAPI"
@@ -14,8 +15,8 @@ interface StudentChat {
   id: string
   name: string
   avatar?: string
-  lastMessage?: string // Optional since new students won't have messages
-  time?: string // Optional since new students won't have timestamps
+  lastMessage?: string
+  lastMessageTime?: Date
   unread: boolean
 }
 
@@ -26,6 +27,7 @@ const MentorMessages = () => {
   const [studentsWithoutChats, setStudentsWithoutChats] = useState<StudentChat[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showChatOnMobile, setShowChatOnMobile] = useState(false)
   
   const mentorId = localStorage.getItem('userId')
 
@@ -39,6 +41,7 @@ const MentorMessages = () => {
         const receivedMessages = await MessageMentorAPI.getReceivedMessages()
         const sentMessages = await MessageMentorAPI.getSentMessages()
         const allMessages = [...receivedMessages, ...sentMessages]
+          .reverse();
         
         // Fetch all students
         const allStudents = await UserMentorAPI.getAllStudents()
@@ -60,13 +63,21 @@ const MentorMessages = () => {
                 name: student.name,
                 avatar: undefined,
                 lastMessage: message.content,
-                time: new Date().toLocaleTimeString(), // Mocked
+                lastMessageTime: undefined,
                 unread: false // Mocked
               })
             }
           }
         })
+        
         const studentsWithChatsList = Array.from(studentMap.values())
+          .sort((a, b) => {
+            // Sort by most recent message first
+            if (!a.lastMessageTime && !b.lastMessageTime) return 0
+            if (!a.lastMessageTime) return 1
+            if (!b.lastMessageTime) return -1
+            return b.lastMessageTime.getTime() - a.lastMessageTime.getTime()
+          })
         setStudentsWithChats(studentsWithChatsList)
 
         // Process students without chats
@@ -125,17 +136,40 @@ const MentorMessages = () => {
       const newStudentChat: StudentChat = {
         ...selectedStudent,
         lastMessage: content,
-        time: new Date().toLocaleTimeString(),
+        lastMessageTime: new Date(),
         unread: false
       }
       setStudentsWithoutChats(prev => prev.filter(s => s.id !== selectedStudent.id))
       setStudentsWithChats(prev => {
-        const updated = prev.filter(s => s.id !== selectedStudent.id) // Remove if already exists
-        return [...updated, newStudentChat]
+        const updated = prev.filter(s => s.id !== selectedStudent.id)
+        return [newStudentChat, ...updated] // Add to top of list
       })
-      setSelectedStudent(newStudentChat) // Update selected student with message data
+      setSelectedStudent(newStudentChat)
     } catch (error) {
       console.error('Failed to send message:', error)
+    }
+  }
+
+  const handleStudentSelect = (student: StudentChat) => {
+    setSelectedStudent(student)
+    setShowChatOnMobile(true)
+  }
+
+  const handleBackToList = () => {
+    setShowChatOnMobile(false)
+  }
+
+  const formatMessageTime = (date?: Date) => {
+    if (!date) return ''
+    const now = new Date()
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
+    
+    if (diffInHours < 1) {
+      return 'agora'
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h`
+    } else {
+      return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
     }
   }
 
@@ -152,7 +186,143 @@ const MentorMessages = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Mobile Layout */}
+      <div className="md:hidden">
+        {!showChatOnMobile ? (
+          <Card className="bg-gradient-to-br from-slate-900 to-slate-950 border-slate-800">
+            <CardHeader>
+              <CardTitle className="text-white flex items-center gap-2">
+                <MessageCircle className="w-5 h-5 text-purple-400" />
+                Conversas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Buscar alunos..."
+                  className="pl-8 bg-slate-900/50 border-slate-800 text-white placeholder:text-slate-400 focus-visible:ring-purple-500"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <ScrollArea className="h-[60vh]">
+                {loading ? (
+                  <div className="text-slate-400 text-center py-4">Carregando...</div>
+                ) : error ? (
+                  <div className="text-red-400 text-center py-4">{error}</div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Existing Chats */}
+                    {filteredStudentsWithChats.length > 0 && (
+                      <div className="space-y-2">
+                        {filteredStudentsWithChats.map((student) => (
+                          <button
+                            key={student.id}
+                            className="w-full p-4 rounded-lg text-left transition-colors hover:bg-slate-800/50 border border-transparent hover:border-purple-500/20"
+                            onClick={() => handleStudentSelect(student)}
+                          >
+                            <div className="flex items-start gap-3">
+                              <Avatar className="flex-shrink-0">
+                                <AvatarImage src={student.avatar} />
+                                <AvatarFallback className="bg-purple-500/20 text-purple-400">{student.name[0]}</AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-medium text-white truncate">{student.name}</span>
+                                  <span className="text-xs text-slate-400 flex-shrink-0 ml-2">
+                                    {formatMessageTime(student.lastMessageTime)}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-slate-400 truncate">
+                                  {student.lastMessage}
+                                </p>
+                              </div>
+                              {student.unread && (
+                                <div className="w-2 h-2 rounded-full bg-purple-500 flex-shrink-0" />
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Students without Chats */}
+                    {filteredStudentsWithoutChats.length > 0 && (
+                      <>
+                        <div className="text-white font-semibold flex items-center gap-2 mt-6 px-2">
+                          <UserPlus className="w-5 h-5 text-purple-400" />
+                          Alunos
+                        </div>
+                        <div className="space-y-2">
+                          {filteredStudentsWithoutChats.map((student) => (
+                            <button
+                              key={student.id}
+                              className="w-full p-4 rounded-lg text-left transition-colors hover:bg-slate-800/50 border border-transparent hover:border-purple-500/20"
+                              onClick={() => handleStudentSelect(student)}
+                            >
+                              <div className="flex items-center gap-3">
+                                <Avatar className="flex-shrink-0">
+                                  <AvatarImage src={student.avatar} />
+                                  <AvatarFallback className="bg-purple-500/20 text-purple-400">{student.name[0]}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-medium text-white">{student.name}</span>
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+
+                    {filteredStudentsWithChats.length === 0 && filteredStudentsWithoutChats.length === 0 && (
+                      <div className="text-slate-400 text-center py-4">Nenhum aluno encontrado</div>
+                    )}
+                  </div>
+                )}
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="bg-gradient-to-br from-slate-900 to-slate-950 border-slate-800">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-slate-400 hover:text-white p-2"
+                  onClick={handleBackToList}
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src={selectedStudent?.avatar} />
+                    <AvatarFallback className="bg-purple-500/20 text-purple-400">
+                      {selectedStudent?.name[0]}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <h2 className="font-semibold text-white">{selectedStudent?.name}</h2>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="h-[60vh]">
+                <CourseChat 
+                  studentId={selectedStudent!.id}
+                  onSendMessage={handleSendMessage}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden md:grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="md:col-span-1 bg-gradient-to-br from-slate-900 to-slate-950 border-slate-800">
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
@@ -199,7 +369,7 @@ const MentorMessages = () => {
                               <div className="flex items-center justify-between">
                                 <span className="font-medium text-white">{student.name}</span>
                                 <span className="text-xs text-slate-400">
-                                  {student.time}
+                                  {formatMessageTime(student.lastMessageTime)}
                                 </span>
                               </div>
                               <p className="text-sm text-slate-400 truncate">

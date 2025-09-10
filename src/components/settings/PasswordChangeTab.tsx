@@ -118,7 +118,7 @@ export function PasswordChangeTab({ onSubmit }: PasswordChangeTabProps) {
             }}>
               Cancelar
             </Button>
-            <Button type="submit">Alterar Senha</Button>
+            <Button className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5" type="submit">Alterar Senha</Button>
           </div>
         </form>
       </CardContent>

@@ -199,7 +199,7 @@ export function ProfileTab({ user, levelProgress, onUserUpdate, onSubmit }: Prof
             <Button variant="outline" type="button" onClick={() => onUserUpdate(user)}>
               Cancelar
             </Button>
-            <Button type="submit">Salvar Alterações</Button>
+            <Button className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5" type="submit">Salvar Alterações</Button>
           </div>
         </form>
       </CardContent>

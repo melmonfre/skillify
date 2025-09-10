@@ -79,7 +79,7 @@ export default function MentorDesafios() {
         
         <div className="flex flex-col sm:flex-row gap-2">
           <Link to="/mentor/desafios/novo">
-            <Button className="w-full sm:w-auto">
+            <Button className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
               <Plus className="mr-2 h-4 w-4" />
               Novo Desafio
             </Button>
@@ -183,7 +183,7 @@ export default function MentorDesafios() {
                   Nenhum desafio encontrado nesta categoria.
                 </p>
                 <Link to="/mentor/desafios/novo">
-                  <Button className="mt-4">
+                  <Button className="mt-4 w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
                     <Plus className="mr-2 h-4 w-4" />
                     Criar Novo Desafio
                   </Button>

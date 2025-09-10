@@ -61,7 +61,7 @@ export const CorrectionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl bg-slate-900 border-slate-800">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-800">
         <DialogHeader>
           <DialogTitle className="text-white">Corrigir Redação</DialogTitle>
         </DialogHeader>
@@ -80,7 +80,6 @@ export const CorrectionDialog = ({
               )}
             </Card>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="estruturaCoesao" className="text-white">Comentários - Estrutura e Coesão</Label>
             <Textarea
@@ -91,7 +90,6 @@ export const CorrectionDialog = ({
               className="min-h-[100px] bg-white/5 border-slate-800 text-white placeholder:text-slate-500"
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="argumentacao" className="text-white">Comentários - Argumentação</Label>
             <Textarea
@@ -102,8 +100,7 @@ export const CorrectionDialog = ({
               className="min-h-[100px] bg-white/5 border-slate-800 text-white placeholder:text-slate-500"
             />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="structure" className="text-white">Nota - Estrutura e Coesão (200)</Label>
               <Input

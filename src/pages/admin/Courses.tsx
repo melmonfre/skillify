@@ -222,22 +222,22 @@ const AdminCourses = () => {
 
   return (
     <div className="container py-8 space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-4xl font-bold tracking-tight">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0">
+        <div className="flex flex-col">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">
             Cursos
             <span className="text-primary ml-2">{courses.length}</span>
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-sm md:text-base text-muted-foreground mt-2">
             Gerencie os cursos da plataforma
           </p>
         </div>
-        <div className="flex gap-4">
+        <div className="flex flex-col md:flex-row gap-4">
           <Button 
             onClick={() => setIsNewCategoryOpen(true)}
             size="lg"
             variant="outline"
-            className="border-primary text-primary hover:bg-primary/10"
+            className="w-full md:w-auto border-primary text-primary hover:bg-primary/10"
           >
             <Tag className="w-5 h-5 mr-2" />
             Nova Categoria
@@ -246,7 +246,7 @@ const AdminCourses = () => {
             onClick={() => setIsCategoriesListOpen(true)}
             size="lg"
             variant="outline"
-            className="border-primary text-primary hover:bg-primary/10"
+            className="w-full md:w-auto border-primary text-primary hover:bg-primary/10"
           >
             <BookOpen className="w-5 h-5 mr-2" />
             Listar Categorias
@@ -254,7 +254,7 @@ const AdminCourses = () => {
           <Button 
             onClick={() => setIsNewCourseOpen(true)}
             size="lg"
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+            className="w-full md:w-auto text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
           >
             <BookPlus className="w-5 h-5 mr-2" />
             Novo Curso
@@ -266,7 +266,7 @@ const AdminCourses = () => {
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
         <Input 
           placeholder="Buscar cursos..." 
-          className="pl-10 py-6 text-lg" 
+          className="w-full pl-10 py-6 text-lg" 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />

@@ -93,22 +93,22 @@ const Courses = () => {
     <div className="container py-8 space-y-8 animate-fadeIn">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-bold">Cursos Disponíveis</h1>
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-2">
-          <div className="relative w-full md:w-64">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-2 w-full">
+          <div className="relative w-full md:w-auto">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar cursos..."
-              className="pl-8"
+              className="pl-8 w-full"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full md:w-auto">
             <Select
               value={selectedCategory}
               onValueChange={setSelectedCategory}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full md:w-[180px]">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Categoria" />
               </SelectTrigger>
@@ -124,7 +124,7 @@ const Courses = () => {
               value={selectedLevel}
               onValueChange={setSelectedLevel}
             >
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full md:w-[180px]">
                 <BookOpen className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Nível" />
               </SelectTrigger>

@@ -378,7 +378,7 @@ const MentorStudents = () => {
             onClick={() => setSelectedStudentChat(student.id)}
             className="hover:bg-primary/5 h-7 text-xs px-5"
           >
-            <MessageSquare className="w-3 h-3 mr-1" />
+            <MessageSquare className="w-1 h-2 mr-1" />
             Mensagem
           </Button>
           <Button 
@@ -411,19 +411,19 @@ const MentorStudents = () => {
   )
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+    <div className="container py-8 space-y-8 animate-fadeIn">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0">
+        <div className="flex flex-col">
+          <h1 className="text-2xl md:text-3xl lg:text-3xl font-bold bg-gradient-to-r from-purple-600 text-white to-indigo-600 bg-clip-text text-transparent">
             Meus Alunos
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground mt-2">
             Gerencie os alunos dos seus cursos
           </p>
         </div>
         <Button 
           onClick={() => setCreateStudentOpen(true)}
-          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+          className="w-full md:w-auto text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
         >
           Novo aluno
         </Button>
@@ -459,16 +459,14 @@ const MentorStudents = () => {
         </Select>
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Pesquise um aluno pelo nome" 
-            className="pl-10 py-6 text-lg"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input 
+          placeholder="Pesquise um aluno pelo nome" 
+          className="w-full pl-10 py-6 text-lg"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
       </div>
 
       {loading ? (

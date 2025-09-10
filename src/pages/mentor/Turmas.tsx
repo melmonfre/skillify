@@ -131,93 +131,93 @@ const MentorTurmas = () => {
   }
 
   return (
-    <div className="container py-8 space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+    <div className="container py-4 sm:py-8 space-y-6 sm:space-y-8 animate-fadeIn max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col">
+          <h1 className="text-xl sm:text-2xl text-white md:text-3xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
             Minhas Turmas
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-sm md:text-base text-muted-foreground mt-2">
             Gerencie suas turmas e compartilhe links de cadastro
           </p>
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar turmas..." 
-            className="pl-10 py-6 text-lg"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
+        <Input 
+          placeholder="Buscar turmas..." 
+          className="w-full pl-10 sm:pl-12 py-3 sm:py-4 text-base sm:text-lg"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {filteredClassrooms.map((classroom) => (
           <Card 
             key={classroom.id}
-            className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card to-primary/5"
+            className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card to-primary/5 overflow-hidden"
           >
-            <CardHeader>
-              <div className="flex justify-between items-start mb-4">
+            <CardHeader className="pb-3 sm:pb-4">
+              <div className="flex justify-between items-start mb-3 sm:mb-4 gap-2">
                 <Badge 
                   variant="outline" 
-                  className={getStatus("2024-03-15") === "Em andamento" 
+                  className={`text-xs ${getStatus("2024-03-15") === "Em andamento" 
                     ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"}
+                    : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"} whitespace-nowrap`}
                 >
                   {getStatus("2024-03-15")}
                 </Badge>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <Users className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {classroom.students.length} alunos
+                  <span className="text-xs sm:text-sm font-medium">
+                    {classroom.students.length}
                   </span>
                 </div>
               </div>
-              <CardTitle className="text-xl mb-4">{classroom.name}</CardTitle>
+              <CardTitle className="text-lg sm:text-xl mb-3 sm:mb-4 line-clamp-2 break-words">
+                {classroom.name}
+              </CardTitle>
               <div className="space-y-2 mt-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <GraduationCap className="w-4 h-4" />
+                <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground">
+                  <GraduationCap className="w-4 h-4 shrink-0" />
                   <span>Cursos:</span>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1 sm:gap-2">
                   {classroom.courses.length > 0 ? (
                     classroom.courses.map((course) => (
                       <Badge 
                         key={course.id}
                         variant="secondary"
-                        className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                        className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 text-xs break-words max-w-full"
                       >
                         {course.name}
                       </Badge>
                     ))
                   ) : (
-                    <span className="text-sm text-muted-foreground">
+                    <span className="text-xs sm:text-sm text-muted-foreground">
                       Nenhum curso atribuído
                     </span>
                   )}
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="flex gap-2">
+            <CardContent className="pt-0">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   onClick={() => generateLink(classroom.id)}
-                  className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300 text-xs sm:text-sm min-w-0"
                 >
-                  <LinkIcon className="w-4 h-4 mr-2" />
-                  Gerar Link de Cadastro
+                  <LinkIcon className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
+                  <span className="truncate">Gerar Link</span>
                 </Button>
                 <Button
                   onClick={() => openStudentsDialog(classroom.id)}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md hover:shadow-lg transition-all duration-300 text-xs sm:text-sm min-w-0"
                 >
-                  <Users className="w-4 h-4 mr-2" />
-                  Editar Alunos
+                  <Users className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
+                  <span className="truncate">Editar Alunos</span>
                 </Button>
               </div>
             </CardContent>
@@ -226,7 +226,7 @@ const MentorTurmas = () => {
       </div>
 
       <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] mx-4 max-w-[calc(100vw-2rem)]">
           <DialogHeader>
             <DialogTitle>Link de Cadastro</DialogTitle>
             <DialogDescription>
@@ -234,12 +234,14 @@ const MentorTurmas = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-4 bg-muted rounded-lg break-all">
-              {registrationLink}
+            <div className="p-3 sm:p-4 bg-muted rounded-lg overflow-hidden">
+              <div className="text-sm break-all select-all font-mono leading-relaxed">
+                {registrationLink}
+              </div>
             </div>
             <Button 
               onClick={handleCopyLink}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all duration-300 text-sm"
             >
               <LinkIcon className="w-4 h-4 mr-2" />
               Copiar Link
@@ -249,24 +251,24 @@ const MentorTurmas = () => {
       </Dialog>
 
       <Dialog open={isStudentsDialogOpen} onOpenChange={setIsStudentsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] mx-4 max-w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Editar Alunos</DialogTitle>
             <DialogDescription>
               Selecione os alunos que devem fazer parte desta turma.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 flex-1 min-h-0">
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
               <Input 
                 placeholder="Buscar alunos..." 
-                className="pl-10 py-6 text-lg"
+                className="w-full pl-10 sm:pl-12 py-3 sm:py-4 text-base sm:text-lg"
                 value={studentSearchQuery}
                 onChange={(e) => setStudentSearchQuery(e.target.value)}
               />
             </div>
-            <div className="max-h-[300px] overflow-y-auto space-y-2">
+            <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2">
               {selectedClassId && classrooms
                 .find(c => c.id === selectedClassId)
                 ?.students
@@ -274,21 +276,23 @@ const MentorTurmas = () => {
                   student.name.toLowerCase().includes(studentSearchQuery.toLowerCase())
                 )
                 .map(student => (
-                  <div key={student.id} className="flex items-center space-x-2">
+                  <div key={student.id} className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/50">
                     <Checkbox
                       id={student.id}
                       checked={selectedStudents.includes(student.id)}
                       onCheckedChange={() => handleStudentToggle(student.id)}
+                      className="mt-0.5"
                     />
-                    <Label htmlFor={student.id} className="text-sm">
-                      {student.name} ({student.email})
+                    <Label htmlFor={student.id} className="text-sm leading-relaxed break-words flex-1 min-w-0">
+                      <div className="font-medium">{student.name}</div>
+                      <div className="text-muted-foreground break-all">({student.email})</div>
                     </Label>
                   </div>
                 ))}
             </div>
             <Button 
               onClick={handleSaveStudents}
-              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md hover:shadow-lg transition-all duration-300"
+              className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-md hover:shadow-lg transition-all duration-300 text-sm"
             >
               Salvar Alterações
             </Button>

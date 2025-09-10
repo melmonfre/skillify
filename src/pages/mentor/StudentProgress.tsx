@@ -133,52 +133,54 @@ const StudentProgress = () => {
       {loading && <p>Carregando dados...</p>}
       {error && <p className="text-red-500">{error}</p>}
       {!loading && !error && students.length === 0 && <p>Nenhum aluno encontrado para a turma selecionada</p>}
-      {!loading && !error && students.length > 0 && (
+      {!loading && !error && (
         <div className="grid gap-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            {filteredStudents.map(student => (
-              <Card key={student.user.id} className="hover:shadow-lg transition-all flex">
-                <div className="flex-shrink-0 p-4">
-                  <img
-                    src={student.user.avatar || "/placeholder.svg"}
-                    alt={student.user.name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <CardHeader>
-                    <CardTitle className="flex justify-between items-center">
-                      <span>{student.user.name}</span>
-                      <div className="flex items-center gap-2">
-                        <Trophy className="w-4 h-4 text-yellow-500" />
-                        <span className="text-primary">{student.user.xp} XP</span>
+          {search && filteredStudents.length > 0 && (
+            <div className="grid gap-6 md:grid-cols-2">
+              {filteredStudents.map(student => (
+                <Card key={student.user.id} className="hover:shadow-lg transition-all flex">
+                  <div className="flex-shrink-0 p-4">
+                    <img
+                      src={student.user.avatar || "/placeholder.svg"}
+                      alt={student.user.name}
+                      className="w-16 h-16 rounded-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <CardHeader>
+                      <CardTitle className="flex justify-between items-center">
+                        <span>{student.user.name}</span>
+                        <div className="flex items-center gap-2">
+                          <Trophy className="w-4 h-4 text-yellow-500" />
+                          <span className="text-primary">{student.user.xp} XP</span>
+                        </div>
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">{student.user.email}</p>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="text-center p-4 bg-primary/5 rounded-lg">
+                          <Star className="w-4 h-4 mx-auto mb-2 text-primary" />
+                          <p className="text-sm font-medium">Nível</p>
+                          <p className="text-2xl font-bold text-primary">{student.user.level}</p>
+                        </div>
+                        <div className="text-center p-4 bg-primary/5 rounded-lg">
+                          <BookOpen className="w-4 h-4 mx-auto mb-2 text-primary" />
+                          <p className="text-sm font-medium">Cursos Iniciados</p>
+                          <p className="text-2xl font-bold text-primary">{student.initiatedCourses}</p>
+                        </div>
+                        <div className="text-center p-4 bg-primary/5 rounded-lg">
+                          <Target className="w-4 h-4 mx-auto mb-2 text-primary" />
+                          <p className="text-sm font-medium">Sequência</p>
+                          <p className="text-2xl font-bold text-primary">{student.sequence}d</p>
+                        </div>
                       </div>
-                    </CardTitle>
-                    <p className="text-sm text-muted-foreground">{student.user.email}</p>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-4 bg-primary/5 rounded-lg">
-                        <Star className="w-4 h-4 mx-auto mb-2 text-primary" />
-                        <p className="text-sm font-medium">Nível</p>
-                        <p className="text-2xl font-bold text-primary">{student.user.level}</p>
-                      </div>
-                      <div className="text-center p-4 bg-primary/5 rounded-lg">
-                        <BookOpen className="w-4 h-4 mx-auto mb-2 text-primary" />
-                        <p className="text-sm font-medium">Cursos Iniciados</p>
-                        <p className="text-2xl font-bold text-primary">{student.initiatedCourses}</p>
-                      </div>
-                      <div className="text-center p-4 bg-primary/5 rounded-lg">
-                        <Target className="w-4 h-4 mx-auto mb-2 text-primary" />
-                        <p className="text-sm font-medium">Sequência</p>
-                        <p className="text-2xl font-bold text-primary">{student.sequence}d</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </div>
-              </Card>
-            ))}
-          </div>
+                    </CardContent>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
           {selectedRanking && (
             <RankingSection
               ranking={selectedRanking.ranking}

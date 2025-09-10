@@ -16,7 +16,6 @@ interface ChatMessage {
   id: string;
   user: { name: string; avatar?: string };
   content: string;
-  timestamp: string;
 }
 
 export function CourseChat({ studentId, onSendMessage }: CourseChatMentorProps) {
@@ -43,15 +42,10 @@ export function CourseChat({ studentId, onSendMessage }: CourseChatMentorProps) 
             name: msg.remetente.id === mentorId ? "Você" : msg.remetente.name,
             avatar: undefined,
           },
-          content: msg.content,
-          timestamp: new Date( Date.now()).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          content: msg.content
         }));
 
         // Sort messages by timestamp to ensure chronological order
-        chatMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
         setMessages(chatMessages);
       } catch (error) {
@@ -74,7 +68,6 @@ export function CourseChat({ studentId, onSendMessage }: CourseChatMentorProps) 
       id: Date.now().toString(),
       user: { name: "Você", avatar: undefined },
       content: newMessage,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
     setMessages((prev) => [...prev, optimisticMessage]);
@@ -110,7 +103,6 @@ export function CourseChat({ studentId, onSendMessage }: CourseChatMentorProps) 
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{message.user.name}</span>
-                    <span className="text-xs text-muted-foreground">{message.timestamp}</span>
                   </div>
                   <p className="text-sm">{message.content}</p>
                 </div>

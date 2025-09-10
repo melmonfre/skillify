@@ -153,24 +153,26 @@ const MentorCourses = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Meus Cursos
-          </h1>
-          <p className="text-slate-400">
-            Gerencie os cursos que você ministra
-          </p>
-        </div>
-        <Button 
-          onClick={() => setIsNewCourseOpen(true)} 
-          className="bg-purple-600 hover:bg-purple-700 text-white border-none"
-          disabled={isLoading}
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo Curso
-        </Button>
-      </div>
+<div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0">
+  <div className="flex flex-col">
+    <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight">
+      Meus Cursos
+      <span className="text-primary ml-2">{courses.length}</span>
+    </h1>
+    <p className="text-sm md:text-base text-muted-foreground mt-2">
+      Gerencie os cursos que você ministra
+    </p>
+  </div>
+  <Button
+    onClick={() => setIsNewCourseOpen(true)}
+    size="lg"
+    className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+    disabled={isLoading}
+  >
+    <Plus className="w-5 h-5 mr-2" />
+    Novo Curso
+  </Button>
+</div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />

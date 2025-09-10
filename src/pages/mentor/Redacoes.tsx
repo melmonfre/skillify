@@ -226,19 +226,11 @@ const MentorRedacoes = () => {
   const handleViewDetails = (essayId: string) => {
     setSelectedEssay(essayId)
     setIsDetailsOpen(true)
-    toast({
-      title: "Visualizando detalhes",
-      description: "Carregando detalhes da redação..."
-    })
   }
 
   const handleViewCorrection = (correctionId: string) => {
     setSelectedCorrectionId(correctionId)
     setIsCorrectionDetailsOpen(true)
-    toast({
-      title: "Visualizando correção",
-      description: "Carregando detalhes da correção..."
-    })
   }
 
   const handleDeleteEssay = (essayId: string) => {
@@ -268,23 +260,25 @@ const MentorRedacoes = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-white">
-            Gerenciar Redações
-          </h1>
-          <p className="text-slate-400">
-            Corrija e avalie as redações dos alunos
-          </p>
-        </div>
-        <Button 
-          onClick={() => setIsNewEssayOpen(true)}
-          className="bg-purple-600 hover:bg-purple-700 text-white border-none"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Nova Redação
-        </Button>
-      </div>
+   <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-0">
+  <div className="flex flex-col">
+    <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-white">
+      Gerenciar Redações
+      <span className="text-primary ml-2">{essays.length}</span>
+    </h1>
+    <p className="text-sm md:text-base text-muted-foreground mt-2">
+      Corrija e avalie as redações dos alunos
+    </p>
+  </div>
+  <Button
+    onClick={() => setIsNewEssayOpen(true)}
+    size="lg"
+    className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
+  >
+    <Plus className="w-5 h-5 mr-2" />
+    Nova Redação
+  </Button>
+</div>
 
       <div className="space-y-6">
         <div className="relative">

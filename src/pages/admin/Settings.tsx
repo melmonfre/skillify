@@ -59,15 +59,6 @@ const Settings = () => {
   }, []);
 
   useEffect(() => {
-    if (!mounted) return;
-    const currentTheme = theme || "light";
-    const root = document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(currentTheme);
-    document.documentElement.style.setProperty(
-      "color-scheme",
-      currentTheme === "dark" ? "dark" : "light"
-    );
   }, [theme, mounted]);
 
   useEffect(() => {

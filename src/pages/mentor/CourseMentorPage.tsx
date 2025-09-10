@@ -429,44 +429,44 @@ const MentorCoursePage = () => {
         {(contentItems[lessonId] || []).map((item) => (
           <div key={item.id} className="relative group">
             {item.type === null ? (
-              <div className="border-2 border-dashed border-slate-700 rounded-lg p-6 flex flex-col items-center justify-center hover:border-slate-600 transition-colors">
-                <div className="flex space-x-3">
+              <div className="border-2 border-dashed border-slate-700 rounded-lg p-4 sm:p-6 flex flex-col items-center justify-center hover:border-slate-600 transition-colors">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
                   <Button
                     variant="outline"
-                    className="border-slate-700 hover:bg-slate-800"
+                    className="border-slate-700 hover:bg-slate-800 w-full sm:w-auto text-xs sm:text-sm"
                     onClick={() =>
                       updateContentItem(lessonId, item.id, "type", CourseLessonContentType.TEXT)
                     }
                   >
-                    <TextCursorInput className="h-4 w-4 mr-2" />
+                    <TextCursorInput className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Texto
                   </Button>
                   <Button
                     variant="outline"
-                    className="border-slate-700 hover:bg-slate-800"
+                    className="border-slate-700 hover:bg-slate-800 w-full sm:w-auto text-xs sm:text-sm"
                     onClick={() =>
                       updateContentItem(lessonId, item.id, "type", CourseLessonContentType.IMAGE)
                     }
                   >
-                    <ImageIcon className="h-4 w-4 mr-2" />
+                    <ImageIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Imagem
                   </Button>
                   <Button
                     variant="outline"
-                    className="border-slate-700 hover:bg-slate-800"
+                    className="border-slate-700 hover:bg-slate-800 w-full sm:w-auto text-xs sm:text-sm"
                     onClick={() =>
                       updateContentItem(lessonId, item.id, "type", CourseLessonContentType.VIDEO)
                     }
                   >
-                    <Video className="h-4 w-4 mr-2" />
+                    <Video className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Vídeo
                   </Button>
                 </div>
               </div>
             ) : (
-              <div className="border border-slate-800 rounded-lg p-4 bg-white/5">
+              <div className="border border-slate-800 rounded-lg p-3 sm:p-4 bg-white/5">
                 <div className="flex justify-between items-center mb-2">
-                  <Badge variant="outline" className="bg-slate-900 text-slate-300">
+                  <Badge variant="outline" className="bg-slate-900 text-slate-300 text-xs">
                     {item.type === CourseLessonContentType.TEXT
                       ? "Texto"
                       : item.type === CourseLessonContentType.IMAGE
@@ -477,7 +477,7 @@ const MentorCoursePage = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-red-400 hover:text-red-300"
+                      className="h-6 w-6 text-red-400 hover:text-red-300 flex-shrink-0"
                       onClick={() => removeContentItem(lessonId, item.id)}
                     >
                       <Trash2 className="h-3 w-3" />
@@ -486,7 +486,7 @@ const MentorCoursePage = () => {
                 </div>
                 {item.type === CourseLessonContentType.TEXT ? (
                   <Textarea
-                    className="bg-slate-900 border-slate-800 text-white"
+                    className="bg-slate-900 border-slate-800 text-white w-full min-w-0"
                     value={item.value}
                     onChange={(e) => updateContentItem(lessonId, item.id, "value", e.target.value)}
                     placeholder="Digite o conteúdo textual..."
@@ -497,19 +497,19 @@ const MentorCoursePage = () => {
                     <Input
                       type="file"
                       accept="video/mp4,video/webm,video/ogg"
-                      className="bg-slate-900 border-slate-800 text-white"
+                      className="bg-slate-900 border-slate-800 text-white w-full min-w-0"
                       onChange={(e) => updateContentItem(lessonId, item.id, "videoFile", e.target.files?.[0] || null)}
                     />
                     <Input
-                      className="bg-slate-900 border-slate-800 text-white"
+                      className="bg-slate-900 border-slate-800 text-white w-full min-w-0"
                       value={item.value}
                       onChange={(e) => updateContentItem(lessonId, item.id, "value", e.target.value)}
                       placeholder="URL do vídeo (YouTube ou arquivo mp4, webm, ogg)..."
                     />
                     {item.value && (
-                      <div className="mt-2">
+                      <div className="mt-2 w-full">
                         {getYouTubeEmbedUrl(item.value) ? (
-                          <div className="relative w-full" style={{ paddingTop: "56.25%" /* 16:9 aspect ratio */ }}>
+                          <div className="relative w-full aspect-video">
                             <iframe
                               src={getYouTubeEmbedUrl(item.value)!}
                               title="YouTube video"
@@ -522,7 +522,7 @@ const MentorCoursePage = () => {
                           <video
                             src={item.value}
                             controls
-                            className="max-w-full h-40 rounded-md border border-slate-800"
+                            className="w-full max-w-full h-auto max-h-40 rounded-md border border-slate-800"
                             onError={(e) => (e.currentTarget.style.display = "none")}
                           />
                         )}
@@ -532,17 +532,17 @@ const MentorCoursePage = () => {
                 ) : (
                   <div className="space-y-2">
                     <Input
-                      className="bg-slate-900 border-slate-800 text-white"
+                      className="bg-slate-900 border-slate-800 text-white w-full min-w-0"
                       value={item.value}
                       onChange={(e) => updateContentItem(lessonId, item.id, "value", e.target.value)}
                       placeholder="URL da imagem..."
                     />
                     {item.value && item.type === CourseLessonContentType.IMAGE && (
-                      <div className="mt-2">
+                      <div className="mt-2 w-full">
                         <img
                           src={item.value}
                           alt="Preview"
-                          className="max-h-40 rounded-md border border-slate-800"
+                          className="w-full max-w-full h-auto max-h-40 object-contain rounded-md border border-slate-800"
                           onError={(e) => (e.currentTarget.style.display = "none")}
                         />
                       </div>
@@ -554,18 +554,18 @@ const MentorCoursePage = () => {
           </div>
         ))}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Button
           variant="outline"
-          className="mt-2 border-slate-800 text-white"
+          className="border-slate-800 text-white w-full sm:w-auto text-xs sm:text-sm"
           onClick={() => addContentItem(lessonId)}
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
           Adicionar Seção
         </Button>
         {(contentItems[lessonId]?.length || 0) > 0 && (
           <Button
-            className="mt-2 bg-purple-600 hover:bg-purple-700"
+            className="bg-purple-600 hover:bg-purple-700 w-full sm:w-auto text-xs sm:text-sm"
             onClick={() => handleNewContent(lessonId)}
             disabled={isLoading}
           >
@@ -577,91 +577,97 @@ const MentorCoursePage = () => {
   );
 
   if (isLoading || !course) {
-    return <div className="text-center text-white p-6">Carregando...</div>;
+    return <div className="text-center text-white p-4 sm:p-6">Carregando...</div>;
   }
 
   return (
     <DndProvider backend={HTML5Backend}>
-      <div className="p-6 space-y-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-4">
+      <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-full overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0">
             <Button
               variant="ghost"
               onClick={() => navigate("/mentor/cursos")}
-              className="text-white"
+              className="text-white flex-shrink-0 text-xs sm:text-sm"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
               Voltar
             </Button>
-            <h1 className="text-2xl font-bold text-white">{course.name}</h1>
+            <h1 className="text-lg sm:text-2xl font-bold text-white truncate min-w-0">{course.name}</h1>
           </div>
           <Button
             onClick={() => setIsNewLessonOpen(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white border-none"
+            className="bg-purple-600 hover:bg-purple-700 text-white border-none w-full sm:w-auto text-xs sm:text-sm flex-shrink-0"
             disabled={isLoading}
           >
-            <Plus className="w-4 h-4 mr-2" />
+            <Plus className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
             Nova Aula
           </Button>
         </div>
 
-        <div className="bg-white/5 p-4 rounded-lg border border-slate-800">
-          <h2 className="text-lg font-semibold text-white mb-2">Informações do Curso</h2>
-          <p className="text-slate-400">Descrição: {course.description}</p>
-          <p className="text-slate-400">Nível: {course.level}</p>
-          <p className="text-slate-400">Duração: {course.duration} minutos</p>
+        <div className="bg-white/5 p-3 sm:p-4 rounded-lg border border-slate-800">
+          <h2 className="text-base sm:text-lg font-semibold text-white mb-2">Informações do Curso</h2>
+          <div className="space-y-1 text-xs sm:text-sm">
+            <p className="text-slate-400 break-words">Descrição: {course.description}</p>
+            <p className="text-slate-400">Nível: {course.level}</p>
+            <p className="text-slate-400">Duração: {course.duration} minutos</p>
+          </div>
           {course.imageUrl && (
-            <img src={course.imageUrl} alt={course.name} className="mt-2 max-w-xs rounded" />
+            <img 
+              src={course.imageUrl} 
+              alt={course.name} 
+              className="mt-2 w-full max-w-xs h-auto rounded object-contain" 
+            />
           )}
         </div>
 
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Aulas</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-white">Aulas</h2>
           {lessons.length === 0 ? (
-            <p className="text-slate-400">Nenhuma aula cadastrada ainda</p>
+            <p className="text-slate-400 text-xs sm:text-sm">Nenhuma aula cadastrada ainda</p>
           ) : (
             lessons.map((lesson) => (
               <div
                 key={lesson.id}
-                className="bg-white/5 p-4 rounded-lg border border-slate-800 space-y-4"
+                className="bg-white/5 p-3 sm:p-4 rounded-lg border border-slate-800 space-y-4"
               >
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-white font-medium">{lesson.name}</h3>
-                    <p className="text-slate-400">Duração: {lesson.duration} minutos</p>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-white font-medium text-sm sm:text-base break-words">{lesson.name}</h3>
+                    <p className="text-slate-400 text-xs sm:text-sm">Duração: {lesson.duration} minutos</p>
                     {lesson.courseLessonCategory.id && (
-                      <p className="text-slate-400">
+                      <p className="text-slate-400 text-xs sm:text-sm break-words">
                         Categoria:{" "}
                         {categories.find((c) => c.id === lesson.courseLessonCategory.id)?.name ||
                           "Desconhecida"}
                       </p>
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto flex-shrink-0">
                     <Button
                       variant="outline"
-                      className="border-slate-800 text-white"
+                      className="border-slate-800 text-white w-full sm:w-auto text-xs sm:text-sm"
                       onClick={() => handleEditLesson(lesson)}
                       disabled={isLoading}
                     >
-                      <Edit2 className="w-4 h-4 mr-2" />
+                      <Edit2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                       Editar
                     </Button>
                     <Button
                       variant="outline"
-                      className="border-slate-800 text-red-400 hover:text-red-300 hover:border-red-400"
+                      className="border-slate-800 text-red-400 hover:text-red-300 hover:border-red-400 w-full sm:w-auto text-xs sm:text-sm"
                       onClick={() => handleDeleteLesson(lesson.id)}
                       disabled={isLoading}
                     >
-                      <Trash2 className="w-4 h-4 mr-2" />
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                       Excluir
                     </Button>
                   </div>
                 </div>
                 <div className="mt-4">
-                  <h4 className="text-sm text-white font-medium mb-2">Conteúdo</h4>
+                  <h4 className="text-xs sm:text-sm text-white font-medium mb-2">Conteúdo</h4>
                   {lesson.content?.length === 0 && !(contentItems[lesson.id]?.length > 0) ? (
-                    <p className="text-slate-400 text-sm">Nenhum conteúdo ainda</p>
+                    <p className="text-slate-400 text-xs sm:text-sm">Nenhum conteúdo ainda</p>
                   ) : (
                     <div className="space-y-4">
                       {lesson.content
@@ -669,25 +675,25 @@ const MentorCoursePage = () => {
                         .map((content) => (
                           <div
                             key={content.id}
-                            className="bg-white/10 p-4 rounded-lg border border-slate-800"
+                            className="bg-white/10 p-3 sm:p-4 rounded-lg border border-slate-800"
                           >
                             <div className="flex justify-between items-center mb-2">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline" className="bg-slate-900 text-slate-300">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Badge variant="outline" className="bg-slate-900 text-slate-300 text-xs flex-shrink-0">
                                   {content.type === CourseLessonContentType.TEXT
                                     ? "Texto"
                                     : content.type === CourseLessonContentType.IMAGE
                                     ? "Imagem"
                                     : "Vídeo"}
                                 </Badge>
-                                <span className="text-slate-400 text-sm">
+                                <span className="text-slate-400 text-xs truncate">
                                   Posição {content.position}
                                 </span>
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-6 w-6 text-red-400 hover:text-red-300"
+                                className="h-6 w-6 text-red-400 hover:text-red-300 flex-shrink-0"
                                 onClick={() => handleDeleteContent(lesson.id, content.id)}
                                 disabled={isLoading}
                               >
@@ -695,17 +701,17 @@ const MentorCoursePage = () => {
                               </Button>
                             </div>
                             {content.type === CourseLessonContentType.TEXT ? (
-                              <p className="text-white whitespace-pre-wrap">{content.value}</p>
+                              <p className="text-white whitespace-pre-wrap text-xs sm:text-sm break-words">{content.value}</p>
                             ) : content.type === CourseLessonContentType.IMAGE ? (
                               <img
                                 src={content.value}
                                 alt="Content"
-                                className="max-w-full h-auto rounded-md border border-slate-800"
+                                className="w-full max-w-full h-auto rounded-md border border-slate-800 object-contain"
                                 onError={(e) => (e.currentTarget.style.display = "none")}
                               />
                             ) : (
                               getYouTubeEmbedUrl(content.value) ? (
-                                <div className="relative w-full" style={{ paddingTop: "56.25%" /* 16:9 aspect ratio */ }}>
+                                <div className="relative w-full aspect-video">
                                   <iframe
                                     src={getYouTubeEmbedUrl(content.value)!}
                                     title="YouTube video"
@@ -718,7 +724,7 @@ const MentorCoursePage = () => {
                                 <video
                                   src={content.url || content.value}
                                   controls
-                                  className="max-w-full h-auto rounded-md border border-slate-800"
+                                  className="w-full max-w-full h-auto rounded-md border border-slate-800"
                                   onError={(e) => (e.currentTarget.style.display = "none")}
                                 />
                               )

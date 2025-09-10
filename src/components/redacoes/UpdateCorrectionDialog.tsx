@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-
 import { Card } from "@/components/ui/card"
 import { EssayExecutionMentorAPI } from "@/api/mentor/controllers/EssayExecutionMentorAPI"
 import { EssayExecutionResponseDTO } from "@/api/dtos/essayExecutionDtos"
@@ -64,7 +63,7 @@ export const UpdateCorrectionDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl bg-slate-900 border-slate-800">
+      <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto bg-slate-900 border-slate-800">
         <DialogHeader>
           <DialogTitle className="text-white">Atualizar Correção</DialogTitle>
         </DialogHeader>
@@ -83,7 +82,6 @@ export const UpdateCorrectionDialog = ({
               )}
             </Card>
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="estruturaCoesao" className="text-white">Comentários - Estrutura e Coesão</Label>
             <Textarea
@@ -94,7 +92,6 @@ export const UpdateCorrectionDialog = ({
               className="min-h-[100px] bg-white/5 border-slate-800 text-white placeholder:text-slate-500"
             />
           </div>
-
           <div className="space-y-2">
             <Label htmlFor="argumentacao" className="text-white">Comentários - Argumentação</Label>
             <Textarea
@@ -105,8 +102,7 @@ export const UpdateCorrectionDialog = ({
               className="min-h-[100px] bg-white/5 border-slate-800 text-white placeholder:text-slate-500"
             />
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="structure" className="text-white">Nota - Estrutura e Coesão (200)</Label>
               <Input
