@@ -59,7 +59,8 @@ const StudentExams = () => {
   };
 
   const handleViewResults = (practiceId: string) => {
-    navigate(`/simulados/resultado/${practiceId}`);
+    
+    navigate(`/dashboard/simulados/resultado/${practiceId}`);
     toast.success("Carregando resultados...");
   };
 

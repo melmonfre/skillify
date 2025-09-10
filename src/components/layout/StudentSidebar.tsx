@@ -38,7 +38,10 @@ const menuItems = [
 
 export function StudentSidebar() {
   return (
-    <Sidebar collapsible="offcanvas">
+    <Sidebar
+      collapsible="offcanvas"
+      className="[&[data-mobile=true]]:w-96"
+    >
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Estudante</SidebarGroupLabel>

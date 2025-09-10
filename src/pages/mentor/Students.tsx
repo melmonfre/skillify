@@ -421,12 +421,6 @@ const MentorStudents = () => {
             Gerencie os alunos dos seus cursos
           </p>
         </div>
-        <Button 
-          onClick={() => setCreateStudentOpen(true)}
-          className="w-full md:w-auto text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-        >
-          Novo aluno
-        </Button>
       </div>
 
       <div className="space-y-2 max-w-md">

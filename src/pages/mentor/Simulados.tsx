@@ -494,8 +494,7 @@ const MentorSimulados = () => {
         simulado={selectedSimulado}
         onQuestionRemoved={handleQuestionRemoved}
         onAddQuestion={() => {
-          setIsEditQuestionsOpen(false);
-          setIsNewQuestionOpen(true);
+          window.open("/mentor/questoes")
         }}
       />
 

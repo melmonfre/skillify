@@ -185,8 +185,8 @@ const MentorTurmas = () => {
                   <span>Cursos:</span>
                 </div>
                 <div className="flex flex-wrap gap-1 sm:gap-2">
-                  {classroom.courses.length > 0 ? (
-                    classroom.courses.map((course) => (
+                  {classroom.courses?.length > 0 ? (
+                    classroom.courses?.map((course) => (
                       <Badge 
                         key={course.id}
                         variant="secondary"

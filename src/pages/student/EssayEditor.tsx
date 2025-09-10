@@ -64,9 +64,9 @@ const EssayEditor = () => {
         studentId: localStorage.getItem("userId") || ""
       };
 
-      await EssayExecutionStudentAPI.createEssayExecution(executionDTO);
-      toast.success("Redação enviada para correção!");
-      navigate("/dashboard/redacoes");
+      const essay = await EssayExecutionStudentAPI.createEssayExecution(executionDTO);
+      //toast.success("Redação enviada para correção!");
+      navigate("/redacoes");
     } catch (error) {
       toast.error("Erro ao enviar redação");
       console.error(error);
@@ -102,10 +102,8 @@ const EssayEditor = () => {
           </p>
         </div>
         <div className="space-x-4">
-          <Button variant="outline" disabled>
-            Salvar Rascunho
-          </Button>
           <Button 
+          className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
             onClick={handleSubmit}
             disabled={!content.trim() || !meetsMinWords}
           >

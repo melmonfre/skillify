@@ -42,7 +42,7 @@ export class EssayExecutionStudentAPI {
       const response = await api.post<EssayExecutionResponseDTO>('/api/student/essay-executions', execution);
       return response.data;
     } catch (error) {
-      console.error('Error creating essay execution:', error);
+      console.error('Error creating essay execution wyyy:', error);
       throw error;
     }
   }
