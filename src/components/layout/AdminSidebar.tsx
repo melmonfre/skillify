@@ -33,7 +33,7 @@ const menuItems = [
 
 export function AdminSidebar() {
   return (
-    <Sidebar>
+    <Sidebar collapsible="offcanvas">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Admin</SidebarGroupLabel>

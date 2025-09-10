@@ -160,7 +160,7 @@ export default function CourseDetails() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Link to="/cursos">
-                <Button variant="ghost" size="sm">
+                <Button variant="ghost" size="sm" >
                   Cursos
                 </Button>
               </Link>
@@ -211,7 +211,7 @@ export default function CourseDetails() {
 
           <div className="flex flex-col sm:flex-row gap-4">
             <Button 
-              className="flex-1"
+              className="flex-1 w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
               onClick={() => {
                 if (nextLesson) {
                   navigate(`/dashboard/cursos/${course.id}/visualizar/aulas/${nextLesson.id}`);
@@ -254,7 +254,7 @@ export default function CourseDetails() {
             </CardContent>
             <CardFooter>
               <Button 
-                className="w-full" 
+                 className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5"
                 disabled={!nextLesson}
                 onClick={() => {
                   if (nextLesson) {

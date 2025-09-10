@@ -10,7 +10,7 @@ import {
   MessageSquare,
   GraduationCap,
   LogOut,
-  HelpCircle, // Add this icon import
+  HelpCircle,
   Settings
 } from "lucide-react"
 import {
@@ -32,7 +32,7 @@ const menuItems = [
   { title: "Cursos", icon: BookOpen, url: "/mentor/cursos" },
   { title: "Redações", icon: FileText, url: "/mentor/redacoes" },
   { title: "Simulados", icon: Target, url: "/mentor/simulados" },
-  { title: "Questões", icon: HelpCircle, url: "/mentor/questoes" }, // Add this menu item
+  { title: "Questões", icon: HelpCircle, url: "/mentor/questoes" },
   { title: "Mentoria", icon: UserCheck, url: "/mentor/mentoria" },
   { title: "Desafios", icon: Trophy, url: "/mentor/desafios" },
   { title: "Mensagens", icon: MessageSquare, url: "/mentor/mensagens" },
@@ -43,7 +43,7 @@ const menuItems = [
 
 export function MentorSidebar() {
   return (
-    <Sidebar>
+    <Sidebar collapsible="offcanvas">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Mentor</SidebarGroupLabel>
